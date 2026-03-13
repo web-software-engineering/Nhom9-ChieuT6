@@ -15,8 +15,8 @@ import type {
   Ward,
 } from '../types/shipping';
 
-const SHIPPING_API_BASE = import.meta.env.VITE_SHIPPING_API_BASE ?? '/api/shipping';
-const USE_MOCK_SHIPPING_API = import.meta.env.VITE_USE_MOCK_SHIPPING_API !== 'false';
+const SHIPPING_API_BASE =
+  import.meta.env.VITE_SHIPPING_API_BASE ?? 'https://nhom9-chieut6-backend.onrender.com/api/shipping';const USE_MOCK_SHIPPING_API = import.meta.env.VITE_USE_MOCK_SHIPPING_API !== 'false';
 
 export class ShippingServiceError extends Error {
   status?: number;
