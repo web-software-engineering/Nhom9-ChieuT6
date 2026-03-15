@@ -20,7 +20,7 @@ function CreateUser() {
     setError("");
 
     try {
-      const response = await fetch("https://nhom9-chieut6-backend.onrender.com/users", {
+      const response = await fetch((import.meta.env.VITE_USERS_API_BASE ?? "https://nhom9-chieut6-backend.onrender.com") + "/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

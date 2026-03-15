@@ -28,7 +28,10 @@ app.get("/", (req, res) => {
 let users = [
   { id: 1, name: "An" },
   { id: 2, name: "Binh" },
+  { id: 3, name: "Chau" },
 ];
+
+let nextUserId = 4;
 
 const shippingTrackingHistory = new Map();
 
@@ -51,6 +54,41 @@ const createInitialTrackingHistory = () => {
 
 app.get("/users", (req, res) => {
   res.json(users);
+});
+
+app.get("/users/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const user = users.find((u) => u.id === id);
+  if (!user) return res.status(404).json({ message: "User not found" });
+  res.json(user);
+});
+
+app.post("/users", (req, res) => {
+  const { name } = req.body;
+  if (!name || !String(name).trim()) {
+    return res.status(400).json({ message: "Name is required" });
+  }
+  const newUser = { id: nextUserId++, name: String(name).trim() };
+  users.push(newUser);
+  res.status(201).json(newUser);
+});
+
+app.put("/users/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const { name } = req.body;
+  if (!name || !String(name).trim()) {
+    return res.status(400).json({ message: "Name is required" });
+  }
+  const user = users.find((u) => u.id === id);
+  if (!user) return res.status(404).json({ message: "User not found" });
+  user.name = String(name).trim();
+  res.json(user);
+});
+
+app.delete("/users/:id", (req, res) => {
+  const id = Number(req.params.id);
+  users = users.filter((u) => u.id !== id);
+  res.json({ message: "User deleted" });
 });
 
 const buildCreateOrderInput = (body = {}) => {
