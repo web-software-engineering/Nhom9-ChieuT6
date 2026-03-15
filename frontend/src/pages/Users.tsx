@@ -6,7 +6,7 @@ type User = {
   name: string;
 };
 
-const API = "https://nhom9-chieut6-backend.onrender.com/users";
+const API = (import.meta.env.VITE_USERS_API_BASE ?? "https://nhom9-chieut6-backend.onrender.com") + "/users";
 
 export default function Users() {
   const [users, setUsers] = useState<User[]>([]);
