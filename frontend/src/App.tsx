@@ -15,6 +15,10 @@ import {
   import logoImage from './assets/images/logo.png';
   import Users from './pages/Users';
   import CreateUserPage from './pages/CreateUser.jsx';
+  import AdminLayout from "./layouts/AdminLayout";
+  import Dashboard from "./pages/admin/Dashboard";
+  import Products from "./pages/admin/Products";
+  import Orders from './pages/admin/Orders';
   function Header() {
     const { getTotalItems } = useCart();
     const navigate = useNavigate();
@@ -185,6 +189,11 @@ import {
           <Route path="/create" element={<CreateUserPage />} />
           <Route path="/store" element={<StorefrontApp />} />
           <Route path="*" element={<StorefrontApp />} />
+          <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="products" element={<Products />} />
+          <Route path="orders" element={<Orders/>}/>
+        </Route>
         </Routes>
       </BrowserRouter>
     );
