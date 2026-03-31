@@ -91,26 +91,28 @@ VALUES
 -- Thêm Products
 INSERT INTO Products (category_ID, seller_ID, product_name, product_image)
 VALUES 
-(1, 2, N'Bút bi Thiên Long', 'images/butbi_thienlong.jpg'),
-(2, 2, N'Sách Toán lớp 10', 'images/sach_toan10.jpg'),
-(3, 2, N'Vở kẻ ngang 200 trang', 'images/vo_200trang.jpg'),
-(1, 2, N'Bút chì gỗ', 'images/butchigo.jpg'),
-(1, 2, N'Thước kẻ nhựa 30cm', 'images/thuoc30cm.jpg'),
-(1, 2, N'Compa học sinh', 'images/compa.jpg'),
-(1, 2, N'Tẩy chì', 'images/taychi.jpg'),
-(3, 2, N'Vở ô ly 100 trang', 'images/vo_oly.jpg'),
-(2, 2, N'Sách Văn lớp 10', 'images/sach_van10.jpg'),
-(2, 2, N'Sách Tiếng Anh lớp 10', 'images/sach_ta10.jpg'),
-(2, 2, N'Sách Lý lớp 10', 'images/sach_ly10.jpg'),
-(2, 2, N'Sách Hóa lớp 10', 'images/sach_hoa10.jpg'),
-(2, 2, N'Sách Sinh lớp 10', 'images/sach_sinh10.jpg'),
-(2, 2, N'Sách Lịch sử lớp 10', 'images/sach_ls10.jpg'),
-(2, 2, N'Sách Địa lý lớp 10', 'images/sach_dia10.jpg'),
-(4, 2, N'Máy tính Casio fx-570VN', 'images/casio_fx570vn.jpg'),
-(5, 2, N'Balo học sinh', 'images/balo.jpg'),
-(6, 2, N'Hộp màu sáp', 'images/mausap.jpg'),
-(1, 2, N'Bút dạ quang', 'images/butdaquang.jpg'),
-(1, 2, N'Bút máy mực xanh', 'images/butmay.jpg');
+(1, 2, N'Bút bi Thiên Long', 'frontend/src/assets/images/butbi_thienlong.jpg'),
+(2, 2, N'Sách Toán lớp 10', 'frontend/src/assets/images/sach_toan10.jpg'),
+(3, 2, N'Vở kẻ ngang 200 trang', 'frontend/src/assets/images/vo_200trang.jpg'),
+(1, 2, N'Bút chì gỗ', 'frontend/src/assets/images/butchigo.jpg'),
+(1, 2, N'Thước kẻ nhựa 30cm', 'frontend/src/assets/images/thuoc30cm.jpg'),
+(1, 2, N'Compa học sinh', 'frontend/src/assets/images/compa.jpg'),
+(1, 2, N'Tẩy chì', 'frontend/src/assets/images/taychi.jpg'),
+(3, 2, N'Vở ô ly 100 trang', 'frontend/src/assets/images/vo_oly.jpg'),
+(2, 2, N'Sách Văn lớp 10', 'frontend/src/assets/images/sach_van10.jpg'),
+(2, 2, N'Sách Tiếng Anh lớp 10', 'frontend/src/assets/images/sach_ta10.jpg'),
+(2, 2, N'Sách Lý lớp 10', 'frontend/src/assets/images/sach_ly10.jpg'),
+(2, 2, N'Sách Hóa lớp 10', 'frontend/src/assets/images/sach_hoa10.jpg'),
+(2, 2, N'Sách Sinh lớp 10', 'frontend/src/assets/images/sach_sinh10.jpg'),
+(2, 2, N'Sách Lịch sử lớp 10', 'frontend/src/assets/images/sach_ls10.jpg'),
+(2, 2, N'Sách Địa lý lớp 10', 'frontend/src/assets/images/sach_dia10.jpg'),
+(4, 2, N'Máy tính Casio fx-570VN', 'frontend/src/assets/images/casio_fx570vn.jpg'),
+(5, 2, N'Balo học sinh', 'frontend/src/assets/images/balo.jpg'),
+(6, 2, N'Hộp màu sáp', 'frontend/src/assets/images/mausap.jpg'),
+(1, 2, N'Bút dạ quang', 'frontend/src/assets/images/butdaquang.jpg'),
+(1, 2, N'Bút máy mực xanh', 'frontend/src/assets/images/butmay.jpg');
+
+
 
 
 -- Thêm Shopping Orders
