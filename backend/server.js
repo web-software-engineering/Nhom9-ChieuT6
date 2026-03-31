@@ -274,9 +274,16 @@ app.listen(PORT, () => {
 
 app.get("/api/test-db", async (req, res) => {
   try {
-    const [rows] = await db.query("SELECT 1 + 1 AS result");
-    res.json(rows);
+    const [rows] = await db.query("SELECT 1 AS ok");
+
+    res.json({
+      message: "DB connected OK",
+      data: rows,
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      message: "DB connection failed",
+      error: err.message,
+    });
   }
 });
