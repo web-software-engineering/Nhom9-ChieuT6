@@ -19,6 +19,8 @@ import {
   import Dashboard from "./pages/admin/Dashboard";
   import Products from "./pages/admin/Products";
   import Orders from './pages/admin/Orders';
+  import Categories from './pages/admin/Categories';
+  
   function Header() {
     const { getTotalItems } = useCart();
     const navigate = useNavigate();
@@ -191,6 +193,7 @@ import {
           <Route path="*" element={<StorefrontApp />} />
           <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
+          <Route path="categories" element={<Categories />} />
           <Route path="products" element={<Products />} />
           <Route path="orders" element={<Orders/>}/>
         </Route>
