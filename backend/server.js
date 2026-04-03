@@ -3,6 +3,8 @@ import express from "express";
 import cors from "cors";
 import * as ghnService from "./services/ghnService.js";
 import db from "./services/db.js";
+import categoryRoutes from "./routes/categoryRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
 
 const requiredEnvVars = ["GHN_API_URL", "GHN_TOKEN", "GHN_SHOP_ID"];
 const missingEnvVars = requiredEnvVars.filter((name) => !process.env[name]);
@@ -16,14 +18,24 @@ if (missingEnvVars.length > 0) {
 }
 
 const app = express();
+import fs from "fs";
+import path from "path";
 
+// TỰ ĐỘNG TẠO FOLDER uploads
+const uploadDir = path.join("public", "uploads");
+
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  console.log("Đã tạo thư mục public/uploads");
+}
 app.use(cors());
 app.use(express.json());
-
+app.use("/uploads", express.static("public/uploads"));
 app.get("/", (req, res) => {
   res.json({ message: "Backend GHN running" });
 });
-
+app.use("/api/categories", categoryRoutes);
+app.use("/api/products", productRoutes);
 /* ================= USERS API ================= */
 
 let users = [
