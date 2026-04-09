@@ -5,6 +5,7 @@ import * as ghnService from "./services/ghnService.js";
 import * as momoService from "./services/momoService.js";
 import * as vnpayService from "./services/vnpayService.js";
 import db from "./services/db.js";
+import authRoutes from "./routes/authRoutes.js";
 
 const requiredEnvVars = ["GHN_API_URL", "GHN_TOKEN", "GHN_SHOP_ID"];
 const missingEnvVars = requiredEnvVars.filter((name) => !process.env[name]);
@@ -13,9 +14,18 @@ console.log("[ENV] GHN_API_URL:", process.env.GHN_API_URL || "(missing)");
 console.log("[ENV] GHN_SHOP_ID:", process.env.GHN_SHOP_ID || "(missing)");
 console.log("[ENV] GHN_TOKEN loaded:", Boolean(process.env.GHN_TOKEN));
 console.log("[ENV] MOMO_ENV:", process.env.MOMO_ENV || "(missing)");
-console.log("[ENV] MOMO_PARTNER_CODE:", process.env.MOMO_PARTNER_CODE || "(missing)");
-console.log("[ENV] MOMO_ACCESS_KEY loaded:", Boolean(process.env.MOMO_ACCESS_KEY));
-console.log("[ENV] MOMO_PARTNER_KEY loaded:", Boolean(process.env.MOMO_PARTNER_KEY));
+console.log(
+  "[ENV] MOMO_PARTNER_CODE:",
+  process.env.MOMO_PARTNER_CODE || "(missing)",
+);
+console.log(
+  "[ENV] MOMO_ACCESS_KEY loaded:",
+  Boolean(process.env.MOMO_ACCESS_KEY),
+);
+console.log(
+  "[ENV] MOMO_PARTNER_KEY loaded:",
+  Boolean(process.env.MOMO_PARTNER_KEY),
+);
 
 if (missingEnvVars.length > 0) {
   console.warn(`[ENV] Missing variables: ${missingEnvVars.join(", ")}`);
@@ -28,6 +38,7 @@ app.set("trust proxy", 1);
 
 app.use(cors());
 app.use(express.json());
+app.use("/api/auth", authRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "Backend GHN running" });
@@ -291,7 +302,8 @@ app.post("/api/vnpay/create-url", async (req, res) => {
 
     // ReturnUrl: ưu tiên biến môi trường (bắt buộc khớp URL đã khai báo với VNPay)
     const protocol = req.protocol;
-    const host = req.get("host") || process.env.BASE_URL?.replace(/^https?:\/\//, "");
+    const host =
+      req.get("host") || process.env.BASE_URL?.replace(/^https?:\/\//, "");
     const returnUrl =
       process.env.VNPAY_RETURN_URL?.trim() ||
       `${protocol}://${host}/api/vnpay/return`;
@@ -318,7 +330,8 @@ app.post("/api/vnpay/create-url", async (req, res) => {
 
 // Return URL — VNPay chuyển hướng về sau thanh toán
 app.get("/api/vnpay/return", (req, res) => {
-  const { vnp_ResponseCode, vnp_TransactionStatus, vnp_TxnRef, vnp_Amount } = req.query;
+  const { vnp_ResponseCode, vnp_TransactionStatus, vnp_TxnRef, vnp_Amount } =
+    req.query;
 
   if (vnp_ResponseCode === "00" || vnp_TransactionStatus === "00") {
     res.send(`
@@ -386,24 +399,31 @@ app.get("/api/vnpay/ipn", async (req, res) => {
     // Verify signature
     const isValidSignature = vnpayService.verifyVNPaySignature(
       query,
-      process.env.VNPAY_HASH_SECRET || ""
+      process.env.VNPAY_HASH_SECRET || "",
     );
 
     if (!isValidSignature) {
       console.error("[VNPay IPN] Chữ ký không hợp lệ:", query);
-      return res.status(200).json({ RspCode: "97", Message: "Invalid signature" });
+      return res
+        .status(200)
+        .json({ RspCode: "97", Message: "Invalid signature" });
     }
 
-    const { vnp_ResponseCode, vnp_TransactionStatus, vnp_TxnRef, vnp_Amount } = query;
+    const { vnp_ResponseCode, vnp_TransactionStatus, vnp_TxnRef, vnp_Amount } =
+      query;
 
-    console.log("[VNPay IPN] Kết quả:", { orderId: vnp_TxnRef, responseCode: vnp_ResponseCode, status: vnp_TransactionStatus });
+    console.log("[VNPay IPN] Kết quả:", {
+      orderId: vnp_TxnRef,
+      responseCode: vnp_ResponseCode,
+      status: vnp_TransactionStatus,
+    });
 
     if (vnp_ResponseCode === "00" && vnp_TransactionStatus === "00") {
       // Thanh toán thành công — lưu vào DB
       try {
         const [existing] = await db.query(
           "SELECT payment_ID FROM Payment WHERE vnpay_txn_ref = ?",
-          [vnp_TxnRef]
+          [vnp_TxnRef],
         );
 
         if (Array.isArray(existing) && existing.length === 0) {
@@ -415,7 +435,7 @@ app.get("/api/vnpay/ipn", async (req, res) => {
               vnp_TxnRef,
               vnp_Amount ? Number(vnp_Amount) / 100 : 0,
               vnp_ResponseCode,
-            ]
+            ],
           );
           console.log("[VNPay IPN] Đã lưu thanh toán:", vnp_TxnRef);
         }
@@ -423,9 +443,13 @@ app.get("/api/vnpay/ipn", async (req, res) => {
         console.error("[VNPay IPN] Lỗi lưu DB:", dbError.message);
       }
 
-      return res.status(200).json({ RspCode: "00", Message: "Confirm Success" });
+      return res
+        .status(200)
+        .json({ RspCode: "00", Message: "Confirm Success" });
     } else {
-      return res.status(200).json({ RspCode: "00", Message: "Confirm Success" });
+      return res
+        .status(200)
+        .json({ RspCode: "00", Message: "Confirm Success" });
     }
   } catch (error) {
     console.error("[VNPay IPN] Lỗi xử lý:", error.message);
@@ -513,7 +537,7 @@ app.post("/api/momo/create-qr", async (req, res) => {
       success: true,
       data: {
         requestId: result.requestId,
-        orderId,           // echo lại orderId nội bộ
+        orderId, // echo lại orderId nội bộ
         amount: Number(amount),
         payUrl: result.payUrl,
         qrCodeUrl: result.qrCodeUrl,
@@ -540,12 +564,14 @@ app.post("/api/momo/ipn", async (req, res) => {
     const rawSignatureData = momoService.buildRawSignatureFromWebhook(body);
     const isValidSignature = momoService.verifyMoMoSignature(
       rawSignatureData,
-      body.signature || ""
+      body.signature || "",
     );
 
     if (!isValidSignature) {
       console.error("[MoMo IPN] Chữ ký không hợp lệ:", body);
-      return res.status(400).json({ success: false, message: "Invalid signature" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid signature" });
     }
 
     console.log("[MoMo IPN] Thanh toán thành công:", {
@@ -560,7 +586,7 @@ app.post("/api/momo/ipn", async (req, res) => {
       try {
         const [existingPayment] = await db.query(
           "SELECT payment_ID FROM Payment WHERE momo_order_id = ?",
-          [body.orderId]
+          [body.orderId],
         );
 
         if (Array.isArray(existingPayment) && existingPayment.length === 0) {
@@ -573,7 +599,7 @@ app.post("/api/momo/ipn", async (req, res) => {
               body.transId,
               body.amount,
               body.resultCode,
-            ]
+            ],
           );
           console.log("[MoMo IPN] Đã lưu thanh toán vào DB:", body.orderId);
         }
@@ -656,7 +682,9 @@ app.get("/api/momo/status", async (req, res) => {
     const { orderId } = req.query;
 
     if (!orderId) {
-      return res.status(400).json({ success: false, message: "orderId là bắt buộc" });
+      return res
+        .status(400)
+        .json({ success: false, message: "orderId là bắt buộc" });
     }
 
     const result = await momoService.getMoMoTransactionStatus(orderId);

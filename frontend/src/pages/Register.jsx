@@ -52,7 +52,7 @@ export default function Register() {
   const [role, setRole] = useState("customer");
   const [loading, setLoading] = useState(false);
   const authBaseUrl =
-    import.meta.env.VITE_API_BASE ?? "http://localhost:5000/api";
+    import.meta.env.VITE_API_BASE ?? "http://localhost:3000/api";
 
   const handleRegister = async (event) => {
     event.preventDefault();

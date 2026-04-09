@@ -61,7 +61,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const authBaseUrl =
-    import.meta.env.VITE_API_BASE ?? "http://localhost:5000/api";
+    import.meta.env.VITE_API_BASE ?? "http://localhost:3000/api";
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
