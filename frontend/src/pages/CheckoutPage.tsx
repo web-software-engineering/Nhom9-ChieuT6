@@ -13,12 +13,10 @@ import { useNavigate } from '../components/Navigation';
 import {
   createShippingOrder,
   getShippingFee,
-  shippingLocationService,
   toShippingErrorMessage,
 } from '../services/shippingService';
-
-const districtOptions = shippingLocationService.listDistricts();
-const defaultSenderDistrictId = districtOptions[0]?.id ?? '';
+// Import trực tiếp data quận/huyện TP.HCM bạn vừa tạo
+import { districts } from '../data/districts';
 
 const initialFormData = {
   receiverName: '',
@@ -26,7 +24,7 @@ const initialFormData = {
   address: '',
   district: '',
   ward: '',
-  fromDistrict: defaultSenderDistrictId,
+  fromDistrict: 'Quận 1', // Mặc định kho hàng ở Quận 1
 };
 
 export default function Checkout() {
@@ -51,6 +49,7 @@ export default function Checkout() {
     setFormData((current) => ({
       ...current,
       [name]: value,
+      // Nếu đổi Quận/Huyện thì tự động reset Phường/Xã về rỗng
       ...(name === 'district' ? { ward: '' } : {}),
     }));
 
@@ -62,25 +61,73 @@ export default function Checkout() {
     }
   };
 
+  // const handleCalculateShipping = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setIsLoading(true);
+  //   setError('');
+
+  //   try {
+  //     const fee = await getShippingFee({
+  //       fromDistrictId: formData.fromDistrict,
+  //       toDistrictId: formData.district, // Dùng tên quận làm ID mô phỏng
+  //       weightKg: getTotalWeight(),
+  //       lengthCm: 30,
+  //       widthCm: 20,
+  //       heightCm: 15,
+  //     });
+
+  //     setShippingFee(fee.total);
+  //     setStep('shipping');
+  //   } catch (error) {
+  //     setError(toShippingErrorMessage(error, 'Không thể tính phí vận chuyển cho đơn hàng này.'));
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
+  // const handlePlaceOrder = async () => {
+  //   setIsLoading(true);
+  //   setError('');
+
+  //   try {
+  //     const order = await createShippingOrder({
+  //       receiverName: formData.receiverName.trim(),
+  //       phone: formData.phone.trim(),
+  //       address: formData.address.trim(),
+  //       districtId: formData.district,
+  //       districtName: formData.district, // Lưu thẳng tên Quận
+  //       wardId: formData.ward,
+  //       wardName: formData.ward, // Lưu thẳng tên Phường
+  //       weightKg: getTotalWeight(),
+  //       productDescription: `${cartItems.length} sản phẩm văn phòng phẩm`,
+  //     });
+
+  //     setOrderCode(order.orderCode);
+  //     setOrderSubtotal(getTotalPrice());
+  //     setStep('success');
+  //     clearCart();
+  //   } catch (error) {
+  //     setError(toShippingErrorMessage(error, 'Không thể tạo đơn giao hàng lúc này.'));
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
   const handleCalculateShipping = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
     try {
-      const fee = await getShippingFee({
-        fromDistrictId: formData.fromDistrict,
-        toDistrictId: formData.district,
-        weightKg: getTotalWeight(),
-        lengthCm: 30,
-        widthCm: 20,
-        heightCm: 15,
-      });
+      // Giả lập thời gian chờ gọi API (800ms) để nhìn giống thật
+      await new Promise(resolve => setTimeout(resolve, 800));
 
-      setShippingFee(fee.total);
+      // Tính phí vận chuyển giả lập: Nếu là "Huyện" thì 40k, "Quận" thì 25k
+      const fee = formData.district.includes('Huyện') ? 40000 : 25000;
+
+      setShippingFee(fee);
       setStep('shipping');
     } catch (error) {
-      setError(toShippingErrorMessage(error, 'Không thể tính phí vận chuyển cho đơn hàng này.'));
+      setError('Không thể tính phí vận chuyển cho đơn hàng này.');
     } finally {
       setIsLoading(false);
     }
@@ -91,24 +138,40 @@ export default function Checkout() {
     setError('');
 
     try {
-      const order = await createShippingOrder({
-        receiverName: formData.receiverName.trim(),
-        phone: formData.phone.trim(),
-        address: formData.address.trim(),
-        districtId: formData.district,
-        districtName: shippingLocationService.getDistrictName(formData.district),
-        wardId: formData.ward,
-        wardName: shippingLocationService.getWardName(formData.ward),
-        weightKg: getTotalWeight(),
-        productDescription: `${cartItems.length} sản phẩm văn phòng phẩm`,
-      });
+      // Giả lập thời gian chờ hệ thống tạo đơn hàng (1 giây)
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      setOrderCode(order.orderCode);
+      // Random một mã đơn hàng 
+      const fakeOrderCode = 'OS' + Math.floor(100000 + Math.random() * 900000);
+
+      // --- CODE MỚI THÊM: Tạo object lưu thông tin đơn hàng ---
+      const newOrderData = {
+        orderCode: fakeOrderCode,
+        receiverName: formData.receiverName,
+        phone: formData.phone,
+        address: `${formData.address}, ${formData.ward}, ${formData.district}, TP.HCM`,
+        totalPrice: getTotalPrice() + shippingFee,
+        shippingFee: shippingFee,
+        status: 'pending', // Trạng thái mặc định ban đầu
+        orderDate: new Date().toLocaleString('vi-VN'),
+        items: cartItems.map(item => ({
+          name: item.product.name,
+          quantity: item.quantity,
+          price: item.product.price
+        }))
+      };
+
+      // Kéo mảng đơn hàng cũ từ localStorage lên (nếu có), nhét thêm đơn mới vào và lưu lại
+      const existingOrders = JSON.parse(localStorage.getItem('office_smart_orders') || '[]');
+      localStorage.setItem('office_smart_orders', JSON.stringify([...existingOrders, newOrderData]));
+      // ---------------------------------------------------------
+
+      setOrderCode(fakeOrderCode);
       setOrderSubtotal(getTotalPrice());
       setStep('success');
       clearCart();
     } catch (error) {
-      setError(toShippingErrorMessage(error, 'Không thể tạo đơn giao hàng lúc này.'));
+      setError('Không thể tạo đơn giao hàng lúc này.');
     } finally {
       setIsLoading(false);
     }
@@ -121,8 +184,9 @@ export default function Checkout() {
     }).format(amount);
   };
 
+  // Lấy danh sách phường/xã dựa trên quận/huyện đang được chọn
   const filteredWards = useMemo(
-    () => shippingLocationService.listWardsByDistrict(formData.district),
+    () => (formData.district && districts[formData.district as keyof typeof districts]) || [],
     [formData.district]
   );
 
@@ -134,6 +198,7 @@ export default function Checkout() {
     { id: 'success', label: 'Hoàn tất', icon: CheckCircle2 },
   ];
 
+  // ... (Giao diện khi giỏ hàng trống và khi đặt hàng thành công giữ nguyên)
   if (cartItems.length === 0 && step !== 'success') {
     return (
       <div className="soft-card p-8 text-center animate-fade-in">
@@ -142,11 +207,7 @@ export default function Checkout() {
         </div>
         <h3 className="text-2xl font-bold text-slate-900">Chưa có sản phẩm để thanh toán</h3>
         <p className="mt-2 text-slate-600">Vui lòng thêm sản phẩm vào giỏ hàng trước khi tiếp tục.</p>
-        <button
-          onClick={() => navigate('home')}
-          className="secondary-btn mt-6"
-          type="button"
-        >
+        <button onClick={() => navigate('home')} className="secondary-btn mt-6" type="button">
           Quay lại trang chủ
         </button>
       </div>
@@ -175,7 +236,6 @@ export default function Checkout() {
             <ClipboardList className="h-5 w-5" />
             Thông tin đơn hàng
           </h3>
-
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-500">Người nhận:</span>
@@ -186,12 +246,12 @@ export default function Checkout() {
               <span className="font-semibold text-slate-800">{formData.phone}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Tiền hàng:</span>
-              <span className="font-semibold text-slate-800">{formatCurrency(orderSubtotal)}</span>
+              <span className="text-slate-500">Khu vực:</span>
+              <span className="font-semibold text-slate-800">{formData.ward}, {formData.district}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Phí vận chuyển:</span>
-              <span className="font-semibold text-slate-800">{formatCurrency(shippingFee)}</span>
+              <span className="text-slate-500">Tiền hàng:</span>
+              <span className="font-semibold text-slate-800">{formatCurrency(orderSubtotal)}</span>
             </div>
             <div className="flex justify-between border-t border-slate-200 pt-3">
               <span className="text-base font-bold text-slate-900">Tổng cộng:</span>
@@ -201,26 +261,10 @@ export default function Checkout() {
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <button
-            onClick={() => navigate('tracking')}
-            className="primary-btn"
-            type="button"
-          >
+          <button onClick={() => navigate('tracking')} className="primary-btn" type="button">
             Theo dõi đơn hàng
           </button>
-          <button
-            onClick={() => {
-              setStep('info');
-              setOrderSubtotal(0);
-              setShippingFee(0);
-              setOrderCode('');
-              setError('');
-              setFormData(initialFormData);
-              navigate('home');
-            }}
-            className="secondary-btn"
-            type="button"
-          >
+          <button onClick={() => { setStep('info'); setOrderSubtotal(0); setShippingFee(0); setOrderCode(''); setError(''); setFormData(initialFormData); navigate('home'); }} className="secondary-btn" type="button">
             Tiếp tục mua sắm
           </button>
         </div>
@@ -232,11 +276,7 @@ export default function Checkout() {
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div className="lg:col-span-2">
         <div className="soft-card p-6 sm:p-7">
-          <button
-            onClick={() => navigate('cart')}
-            className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-800"
-            type="button"
-          >
+          <button onClick={() => navigate('cart')} className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-800" type="button">
             <ArrowLeft className="w-5 h-5" />
             Quay lại giỏ hàng
           </button>
@@ -247,18 +287,8 @@ export default function Checkout() {
             {checkoutSteps.map((item, index) => {
               const isActive = currentStepIndex === index;
               const isDone = currentStepIndex > index;
-
               return (
-                <div
-                  key={item.id}
-                  className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ${
-                    isDone
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : isActive
-                        ? 'bg-slate-900 text-white'
-                        : 'bg-slate-100 text-slate-500'
-                  }`}
-                >
+                <div key={item.id} className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ${isDone ? 'bg-emerald-100 text-emerald-700' : isActive ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}`}>
                   <item.icon className="h-4 w-4" />
                   {item.label}
                 </div>
@@ -269,115 +299,53 @@ export default function Checkout() {
           <form onSubmit={handleCalculateShipping} className="space-y-5">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Tên người nhận <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="receiverName"
-                  value={formData.receiverName}
-                  onChange={handleChange}
-                  required
-                  placeholder="Nguyễn Văn A"
-                  className="input-modern"
-                />
+                <label className="mb-2 block text-sm font-medium text-slate-700">Tên người nhận <span className="text-red-500">*</span></label>
+                <input type="text" name="receiverName" value={formData.receiverName} onChange={handleChange} required placeholder="Nguyễn Văn A" className="input-modern" />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Số điện thoại <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  required
-                  placeholder="0901234567"
-                  pattern="[0-9]{10}"
-                  className="input-modern"
-                />
+                <label className="mb-2 block text-sm font-medium text-slate-700">Số điện thoại <span className="text-red-500">*</span></label>
+                <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required placeholder="0901234567" pattern="[0-9]{10}" className="input-modern" />
               </div>
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Địa chỉ <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                required
-                rows={3}
-                placeholder="Số nhà, tên đường..."
-                className="input-modern resize-none"
-              />
+              <label className="mb-2 block text-sm font-medium text-slate-700">Địa chỉ <span className="text-red-500">*</span></label>
+              <textarea name="address" value={formData.address} onChange={handleChange} required rows={3} placeholder="Số nhà, tên đường..." className="input-modern resize-none" />
             </div>
 
+            {/* PHẦN CHỌN QUẬN / PHƯỜNG ĐỘNG */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Quận/Huyện <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="district"
-                  value={formData.district}
-                  onChange={handleChange}
-                  required
-                  className="input-modern appearance-none"
-                >
+                <label className="mb-2 block text-sm font-medium text-slate-700">Quận/Huyện <span className="text-red-500">*</span></label>
+                <select name="district" value={formData.district} onChange={handleChange} required className="input-modern appearance-none">
                   <option value="">Chọn quận/huyện</option>
-                  {districtOptions.map((district) => (
-                    <option key={district.id} value={district.id}>
-                      {district.name}
+                  {Object.keys(districts).map((district) => (
+                    <option key={district} value={district}>
+                      {district}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Phường/Xã <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="ward"
-                  value={formData.ward}
-                  onChange={handleChange}
-                  required
-                  disabled={!formData.district}
-                  className="input-modern appearance-none disabled:cursor-not-allowed disabled:bg-slate-100"
-                >
+                <label className="mb-2 block text-sm font-medium text-slate-700">Phường/Xã <span className="text-red-500">*</span></label>
+                <select name="ward" value={formData.ward} onChange={handleChange} required disabled={!formData.district} className="input-modern appearance-none disabled:cursor-not-allowed disabled:bg-slate-100">
                   <option value="">Chọn phường/xã</option>
                   {filteredWards.map((ward) => (
-                    <option key={ward.id} value={ward.id}>
-                      {ward.name}
+                    <option key={ward} value={ward}>
+                      {ward}
                     </option>
                   ))}
                 </select>
               </div>
             </div>
 
-            {error && (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 animate-fade-in">
-                {error}
-              </div>
-            )}
+            {error && <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 animate-fade-in">{error}</div>}
 
             {step === 'info' && (
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="primary-btn flex w-full items-center justify-center gap-2"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Đang tính phí...
-                  </>
-                ) : (
-                  'Tính phí vận chuyển'
-                )}
+              <button type="submit" disabled={isLoading} className="primary-btn flex w-full items-center justify-center gap-2">
+                {isLoading ? <><Loader2 className="w-5 h-5 animate-spin" />Đang tính phí...</> : 'Tính phí vận chuyển'}
               </button>
             )}
           </form>
@@ -387,28 +355,10 @@ export default function Checkout() {
               <h3 className="mb-4 font-bold text-slate-900">Phí vận chuyển đã được tính</h3>
               <div className="mb-4 flex items-center justify-between">
                 <span className="text-slate-600">Phí giao hàng:</span>
-                <span className="text-2xl font-bold text-slate-900">
-                  {formatCurrency(shippingFee)}
-                </span>
+                <span className="text-2xl font-bold text-slate-900">{formatCurrency(shippingFee)}</span>
               </div>
-
-              <button
-                onClick={handlePlaceOrder}
-                disabled={isLoading}
-                className="primary-btn flex w-full items-center justify-center gap-2"
-                type="button"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Đang đặt hàng...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-5 h-5" />
-                    Đặt hàng ngay
-                  </>
-                )}
+              <button onClick={handlePlaceOrder} disabled={isLoading} className="primary-btn flex w-full items-center justify-center gap-2" type="button">
+                {isLoading ? <><Loader2 className="w-5 h-5 animate-spin" />Đang đặt hàng...</> : <><CheckCircle2 className="w-5 h-5" />Đặt hàng ngay</>}
               </button>
             </div>
           )}
@@ -418,26 +368,18 @@ export default function Checkout() {
       <div className="lg:col-span-1">
         <div className="soft-card p-6 lg:sticky lg:top-24">
           <h3 className="text-xl font-bold text-slate-900">Đơn hàng</h3>
-
           <div className="mt-4 max-h-64 space-y-3 overflow-y-auto pr-1">
             {cartItems.map((item) => (
               <div key={item.product.id} className="flex gap-3 text-sm">
-                <img
-                  src={item.product.image}
-                  alt={item.product.name}
-                  className="h-14 w-14 rounded-lg border border-slate-200 object-cover"
-                />
+                <img src={item.product.image} alt={item.product.name} className="h-14 w-14 rounded-lg border border-slate-200 object-cover" />
                 <div className="min-w-0 flex-grow">
                   <p className="truncate font-semibold text-slate-800">{item.product.name}</p>
                   <p className="text-slate-500">SL: {item.quantity}</p>
                 </div>
-                <p className="font-bold text-slate-900">
-                  {formatCurrency(item.product.price * item.quantity)}
-                </p>
+                <p className="font-bold text-slate-900">{formatCurrency(item.product.price * item.quantity)}</p>
               </div>
             ))}
           </div>
-
           <div className="mt-5 space-y-2 border-t border-slate-200 pt-4">
             <div className="flex justify-between">
               <span className="text-slate-600">Tạm tính:</span>
@@ -445,15 +387,11 @@ export default function Checkout() {
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">Phí vận chuyển:</span>
-              <span className="font-semibold">
-                {shippingFee > 0 ? formatCurrency(shippingFee) : 'Chưa tính'}
-              </span>
+              <span className="font-semibold">{shippingFee > 0 ? formatCurrency(shippingFee) : 'Chưa tính'}</span>
             </div>
             <div className="flex justify-between border-t border-slate-200 pt-3">
               <span className="text-lg font-bold text-slate-900">Tổng cộng:</span>
-              <span className="text-xl font-bold text-slate-900">
-                {formatCurrency(getTotalPrice() + shippingFee)}
-              </span>
+              <span className="text-xl font-bold text-slate-900">{formatCurrency(getTotalPrice() + shippingFee)}</span>
             </div>
           </div>
         </div>

@@ -1,13 +1,12 @@
 import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ShoppingCart, Search, Home as HomeIcon } from "lucide-react";
-import { CartProvider } from "./contexts/CartContext";
+import { CartProvider, useCart } from "./contexts/CartContext";
 import {
   NavigationProvider,
   useNavigate,
   useCurrentPage,
 } from "./components/Navigation";
-import { useCart } from "./contexts/CartContext";
 import UserMenu from "./components/UserMenu";
 import ProductList from "./components/ProductList";
 import Cart from "./components/Cart";
