@@ -1,0 +1,190 @@
+/* ===== Layout ===== */
+.admin-container {
+  display: flex;
+  min-height: 100vh;
+  background: #f3f4f6;
+}
+
+/* ===== Sidebar ===== */
+.admin-sidebar {
+  width: 250px;
+  background: #ffffff;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  transition: none;
+  overflow: hidden;
+}
+
+/* Collapse */
+.admin-sidebar.collapsed {
+  width: 70px;
+}
+
+/* ===== Logo ===== */
+.admin-logo {
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  position: relative;
+}
+
+.admin-logo h2 {
+  color: #2563eb;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+/* Nút toggle */
+.toggle-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.toggle-btn:hover {
+  opacity: 0.9;
+}
+
+/* ===== Menu ===== */
+.admin-menu {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  color: #374151;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+/* Hover */
+.admin-link:hover {
+  background: #e0edff;
+  color: #2563eb;
+}
+
+/* Active */
+.admin-link.active {
+  background: #2563eb;
+  color: #fff;
+  font-weight: 500;
+}
+
+/* ===== Collapse UI ===== */
+
+/* Ẩn chữ khi thu gọn */
+.admin-sidebar.collapsed .link-text {
+  display: none;
+}
+
+/* ===== FIX LOGO KHI COLLAPSE ===== */
+.admin-sidebar.collapsed .admin-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15px 10px;
+}
+
+/* Ẩn chữ logo */
+.admin-sidebar.collapsed .logo-text {
+  display: none;
+}
+
+/* Nút toggle ra giữa */
+.admin-sidebar.collapsed .toggle-btn {
+  position: static;
+  margin: 0 auto;
+}
+
+/* ===== FIX MENU ===== */
+.admin-sidebar.collapsed .admin-menu {
+  align-items: center;
+  padding: 10px 0;
+}
+
+.admin-sidebar.collapsed .admin-link {
+  justify-content: center;
+  padding: 12px 0;
+  width: 100%;
+  font-size: 20px;
+}
+
+/* Hover khi collapse */
+.admin-sidebar.collapsed .admin-link:hover {
+  transform: scale(1.1);
+}
+
+/* ===== Tooltip khi collapse ===== */
+.admin-sidebar.collapsed .admin-link:hover::after {
+  content: attr(data-title);
+  position: absolute;
+  left: 70px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #111;
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* ===== Main ===== */
+.admin-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Header ===== */
+.admin-header {
+  background: #fff;
+  padding: 15px 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.admin-header h1 {
+  font-size: 18px;
+  color: #374151;
+}
+
+.admin-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-avatar {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+/* ===== Content ===== */
+.admin-content {
+  padding: 25px;
+}
