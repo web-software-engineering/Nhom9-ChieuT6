@@ -10,6 +10,8 @@
     "axios": "^1.6.7",
     "cors": "^2.8.6",
     "dotenv": "^16.4.1",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "framer-motion": "^12.38.0",
+    "react-datepicker": "^9.1.0"
   }
 }

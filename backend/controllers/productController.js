@@ -22,41 +22,24 @@ export const getAllProducts = async (req, res) => {
 // ================= ADD =================
 export const addProduct = async (req, res) => {
   try {
-    console.log("BODY:", req.body);
-    console.log("FILE:", req.file);
-
     const { category_ID, product_name, price, number } = req.body;
 
-    //  validate
-    if (
-      !category_ID ||
-      !product_name?.trim() ||
-      price == null ||
-      number == null
-    ) {
-      return res.status(400).json({
-        message: "Thiếu category, tên sản phẩm, giá hoặc số lượng",
-      });
+    if (!category_ID || !product_name?.trim()) {
+      return res.status(400).json({ message: "Thiếu category hoặc tên sản phẩm" });
     }
 
-    const seller_ID = 2; // tạm thời hardcode
+    const priceNum = Number(price ?? 0);
+    const numberNum = Number(number ?? 0);
+    const seller_ID = 2;
 
-    let product_image = null;
-    if (req.file) {
-      product_image = `uploads/${req.file.filename}`;
-    }
+    let product_image = req.file ? `uploads/${req.file.filename}` : null;
 
-    const [result] = await db.query(
-      `INSERT INTO products 
-       (category_ID, seller_ID, product_name, price, number, product_image) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [Number(category_ID), seller_ID, product_name, Number(price), Number(number), product_image]
-    );
+    const [result] = await pool.query(`
+  INSERT INTO products (category_ID, product_name, price, number, product_image, import_date)
+  VALUES (?, ?, ?, ?, ?, CURDATE())
+`, [category_ID, product_name, price, number, product_image]);
 
-    res.json({
-      message: "Thêm sản phẩm thành công",
-      product_ID: result.insertId,
-    });
+    res.json({ message: "Thêm sản phẩm thành công", product_ID: result.insertId });
   } catch (err) {
     console.error("ADD ERROR:", err);
     res.status(500).json({ message: "Server error", error: err.message });
@@ -66,40 +49,30 @@ export const addProduct = async (req, res) => {
 // ================= UPDATE =================
 export const updateProduct = async (req, res) => {
   const { id } = req.params;
-  const { category_ID, product_name, price, number } = req.body;
+  const { category_ID, product_name, price, number, import_date } = req.body;
 
   try {
-    if (
-      !category_ID ||
-      !product_name?.trim() ||
-      price == null ||
-      number == null
-    ) {
-      return res.status(400).json({ message: "Thiếu dữ liệu" });
+    if (!category_ID || !product_name?.trim()) {
+      return res.status(400).json({ message: "Thiếu dữ liệu bắt buộc" });
     }
 
-    let product_image = null;
-    if (req.file) product_image = `uploads/${req.file.filename}`;
+    const priceNum = Number(price ?? 0);
+    const numberNum = Number(number ?? 0);
 
-    const [existing] = await db.query(
-      "SELECT product_image FROM products WHERE product_ID = ?",
-      [id]
-    );
+    let product_image = req.file ? `uploads/${req.file.filename}` : null;
 
-    if (!existing.length) {
-      return res.status(404).json({ message: "Sản phẩm không tồn tại" });
-    }
+    // Lấy thông tin hiện tại
+    const [existing] = await db.query("SELECT product_image FROM products WHERE product_ID = ?", [id]);
+    if (!existing.length) return res.status(404).json({ message: "Sản phẩm không tồn tại" });
 
-    if (!product_image) {
-      product_image = existing[0].product_image;
-    }
+    if (!product_image) product_image = existing[0].product_image;
 
-    await db.query(
-      `UPDATE products 
-       SET category_ID = ?, product_name = ?, price = ?, number = ?, product_image = ? 
-       WHERE product_ID = ?`,
-      [Number(category_ID), product_name, Number(price), Number(number), product_image, id]
-    );
+    // Cập nhật sản phẩm
+    await db.query(`
+      UPDATE products
+      SET category_ID = ?, product_name = ?, price = ?, number = ?, product_image = ?, import_date = ?
+      WHERE product_ID = ?
+    `, [category_ID, product_name, priceNum, numberNum, product_image, import_date || new Date().toISOString().split("T")[0], id]);
 
     res.json({ message: "Cập nhật sản phẩm thành công" });
   } catch (err) {
@@ -111,25 +84,16 @@ export const updateProduct = async (req, res) => {
 // ================= DELETE =================
 export const deleteProduct = async (req, res) => {
   const { id } = req.params;
-
   try {
-    const [existing] = await db.query(
-      "SELECT product_image FROM products WHERE product_ID = ?",
-      [id]
-    );
+    const [existing] = await db.query("SELECT product_image FROM products WHERE product_ID = ?", [id]);
+    if (!existing.length) return res.status(404).json({ message: "Sản phẩm không tồn tại" });
 
-    if (!existing.length) {
-      return res.status(404).json({ message: "Sản phẩm không tồn tại" });
-    }
-
-    // xóa file
     if (existing[0].product_image) {
       const filePath = path.join("public", existing[0].product_image);
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
 
     await db.query("DELETE FROM products WHERE product_ID = ?", [id]);
-
     res.json({ message: "Xóa sản phẩm thành công" });
   } catch (err) {
     console.error("DELETE ERROR:", err);

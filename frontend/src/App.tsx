@@ -1,5 +1,5 @@
   import { useEffect } from 'react';
-  import { BrowserRouter, Route, Routes } from 'react-router-dom';
+  import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import {
     ShoppingCart,
     Search,
@@ -20,6 +20,9 @@ import {
   import Products from "./pages/admin/Products";
   import Orders from './pages/admin/Orders';
   import Categories from './pages/admin/Categories';
+  import Stats from './pages/admin/Stats';
+  import AdminLogin from './pages/admin/AdminLogin';
+  import AdminRoute from "./components/AdminRoute";
   
   function Header() {
     const { getTotalItems } = useCart();
@@ -184,22 +187,38 @@ import {
 
   function App() {
     return (
-      <BrowserRouter>
+     <BrowserRouter>
         <Routes>
+
+          {/* STORE */}
           <Route path="/" element={<StorefrontApp />} />
           <Route path="/users" element={<StorefrontApp />} />
           <Route path="/create" element={<CreateUserPage />} />
           <Route path="/store" element={<StorefrontApp />} />
           <Route path="*" element={<StorefrontApp />} />
-          <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="categories" element={<Categories />} />
-          <Route path="products" element={<Products />} />
-          <Route path="orders" element={<Orders/>}/>
-        </Route>
+
+          {/* ADMIN có layout */}
+      <Route path="/admin" element={<AdminLayout />}>
+        {/* Nếu muốn mở mặc định vào dashboard */}
+        <Route index element={<Navigate to="dashboard" />} />
+
+        <Route
+          path="dashboard"
+          element={
+            <AdminRoute>
+              <Dashboard />
+            </AdminRoute>
+          }
+        />
+
+        <Route path="products" element={<AdminRoute><Products /></AdminRoute>} />
+        <Route path="orders" element={<AdminRoute><Orders /></AdminRoute>} />
+        <Route path="categories" element={<AdminRoute><Categories /></AdminRoute>} />
+        <Route path="stats" element={<AdminRoute><Stats /></AdminRoute>} />
+      </Route>
         </Routes>
       </BrowserRouter>
-    );
-  }
+          );
+        }
 
   export default App;
