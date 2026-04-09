@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import axios from "axios";
 
 interface Order {
@@ -16,7 +16,6 @@ interface OrderDetail {
   total: number;
 }
 
-// ✅ Fallback nếu VITE_API_URL chưa set
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function AdminOrders() {
@@ -35,7 +34,7 @@ function AdminOrders() {
   const fetchOrders = async () => {
     try {
       setLoadingOrders(true);
-      const res = await axios.get(`${API_URL}/api/orders`);
+      const res = await axios.get<Order[]>(`${API_URL}/api/orders`);
       setOrders(res.data || []);
     } catch (err) {
       console.error("Lỗi tải đơn hàng:", err);
@@ -48,7 +47,7 @@ function AdminOrders() {
   const viewDetails = async (orderID: number) => {
     try {
       setLoadingDetails(true);
-      const res = await axios.get(`${API_URL}/api/orders/${orderID}`);
+      const res = await axios.get<OrderDetail[]>(`${API_URL}/api/orders/${orderID}`);
       setDetails(res.data || []);
       setSelectedOrder(orderID);
     } catch (err) {
@@ -63,10 +62,8 @@ function AdminOrders() {
     try {
       const res = await axios.post(`${API_URL}/api/orders/${orderID}/pay`);
       alert(res.data.message);
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.order_ID === orderID ? { ...o, payment_status: "Đã thanh toán" } : o
-        )
+      setOrders(prev =>
+        prev.map(o => o.order_ID === orderID ? { ...o, payment_status: "Đã thanh toán" } : o)
       );
     } catch (err: any) {
       console.error(err);
@@ -78,10 +75,8 @@ function AdminOrders() {
     try {
       const res = await axios.post(`${API_URL}/api/orders/${orderID}/deliver`);
       alert(res.data.message);
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.order_ID === orderID ? { ...o, delivery_status: "Đã giao" } : o
-        )
+      setOrders(prev =>
+        prev.map(o => o.order_ID === orderID ? { ...o, delivery_status: "Đã giao" } : o)
       );
     } catch (err: any) {
       console.error(err);
@@ -90,21 +85,20 @@ function AdminOrders() {
   };
 
   const handleCheck = (id: number, checked: boolean) => {
-    if (checked) setSelectedOrders((prev) => [...prev, id]);
-    else setSelectedOrders((prev) => prev.filter((x) => x !== id));
+    setSelectedOrders(prev => checked ? [...prev, id] : prev.filter(x => x !== id));
   };
 
   const handleCheckAll = (checked: boolean) => {
-    if (checked) setSelectedOrders(filteredOrders.map((o) => o.order_ID));
+    if (checked) setSelectedOrders(filteredOrders.map(o => o.order_ID));
     else setSelectedOrders([]);
   };
 
   const handleDeleteSelected = async () => {
-    if (selectedOrders.length === 0) return alert("Chưa chọn đơn hàng nào!");
+    if (!selectedOrders.length) return alert("Chưa chọn đơn hàng nào!");
     if (!window.confirm(`Bạn có chắc muốn xóa ${selectedOrders.length} đơn hàng đã chọn?`)) return;
 
     try {
-      await Promise.all(selectedOrders.map((id) => axios.delete(`${API_URL}/api/orders/${id}`)));
+      await Promise.all(selectedOrders.map(id => axios.delete(`${API_URL}/api/orders/${id}`)));
       setSelectedOrders([]);
       setDetails([]);
       setSelectedOrder(null);
@@ -115,7 +109,7 @@ function AdminOrders() {
     }
   };
 
-  const filteredOrders = orders.filter((o) =>
+  const filteredOrders = orders.filter(o =>
     o.customer_name.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -128,7 +122,7 @@ function AdminOrders() {
           type="text"
           placeholder="🔍 Tìm kiếm khách hàng..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
           className="border px-3 py-2 rounded w-full sm:w-1/3"
         />
         <button
@@ -150,7 +144,7 @@ function AdminOrders() {
                   <input
                     type="checkbox"
                     checked={selectedOrders.length === filteredOrders.length && filteredOrders.length > 0}
-                    onChange={(e) => handleCheckAll(e.target.checked)}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => handleCheckAll(e.target.checked)}
                   />
                 </th>
                 <th className="px-4 py-2 border-b">Khách hàng</th>
@@ -161,13 +155,13 @@ function AdminOrders() {
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.map((o) => (
+              {filteredOrders.map(o => (
                 <tr key={o.order_ID} className="hover:bg-gray-50">
                   <td className="px-4 py-2 border-b">
                     <input
                       type="checkbox"
                       checked={selectedOrders.includes(o.order_ID)}
-                      onChange={(e) => handleCheck(o.order_ID, e.target.checked)}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => handleCheck(o.order_ID, e.target.checked)}
                     />
                   </td>
                   <td className="px-4 py-2 border-b">{o.customer_name}</td>
@@ -182,22 +176,14 @@ function AdminOrders() {
                       Xem
                     </button>
                     <button
-                      className={`px-2 py-1 rounded ${
-                        o.payment_status === "Đã thanh toán"
-                          ? "bg-gray-400 cursor-not-allowed"
-                          : "bg-green-500 text-white"
-                      }`}
+                      className={`px-2 py-1 rounded ${o.payment_status === "Đã thanh toán" ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 text-white"}`}
                       onClick={() => payOrder(o.order_ID)}
                       disabled={o.payment_status === "Đã thanh toán"}
                     >
                       Thanh toán
                     </button>
                     <button
-                      className={`px-2 py-1 rounded ${
-                        o.delivery_status === "Đã giao"
-                          ? "bg-gray-400 cursor-not-allowed"
-                          : "bg-purple-500 text-white"
-                      }`}
+                      className={`px-2 py-1 rounded ${o.delivery_status === "Đã giao" ? "bg-gray-400 cursor-not-allowed" : "bg-purple-500 text-white"}`}
                       onClick={() => deliverOrder(o.order_ID)}
                       disabled={o.delivery_status === "Đã giao"}
                     >
@@ -247,9 +233,7 @@ function AdminOrders() {
                   ))}
                   <tr className="font-bold bg-gray-100">
                     <td colSpan={3} className="px-4 py-2 border-b text-right">Tổng cộng</td>
-                    <td className="px-4 py-2 border-b">
-                      {details.reduce((sum, item) => sum + item.total, 0).toLocaleString()} đ
-                    </td>
+                    <td className="px-4 py-2 border-b">{details.reduce((sum, item) => sum + item.total, 0).toLocaleString()} đ</td>
                   </tr>
                 </tbody>
               </table>

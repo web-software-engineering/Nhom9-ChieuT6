@@ -7,6 +7,12 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+// Tạo interface cho admin
+interface Admin {
+  user_ID?: number;
+  username?: string;
+}
+
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [openMenu, setOpenMenu] = useState(false);
@@ -20,7 +26,7 @@ export default function AdminLayout() {
 
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const admin = JSON.parse(sessionStorage.getItem("adminUser") || "{}");
+  const admin: Admin = JSON.parse(sessionStorage.getItem("adminUser") || "{}");
 
   // Click ngoài đóng menu
   useEffect(() => {
@@ -134,8 +140,20 @@ export default function AdminLayout() {
         {/* MODAL */}
         <AnimatePresence>
           {openModal && (
-            <motion.div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpenModal(false)}>
-              <motion.div onClick={(e) => e.stopPropagation()} initial={{ scale: 0.8, y: 40 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.8, y: 40 }} className="bg-white dark:bg-gray-800 p-6 rounded-xl w-96">
+            <motion.div
+              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setOpenModal(false)}
+            >
+              <motion.div
+                onClick={(e) => e.stopPropagation()}
+                initial={{ scale: 0.8, y: 40 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.8, y: 40 }}
+                className="bg-white dark:bg-gray-800 p-6 rounded-xl w-96"
+              >
                 <h2 className="text-lg font-bold mb-4">🔐 Đổi mật khẩu</h2>
                 <input type="password" placeholder="Mật khẩu cũ" value={oldPass} onChange={(e) => setOldPass(e.target.value)} className="w-full border p-2 mb-2 rounded bg-white dark:bg-gray-700 text-black dark:text-white"/>
                 <div className="relative">

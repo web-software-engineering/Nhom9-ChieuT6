@@ -41,28 +41,33 @@ const Stats: React.FC = () => {
   const [filterType, setFilterType] = useState<"day"|"month"|"year">("day");
   const [startDate, setStartDate] = useState<Date | null>(new Date());
   const [endDate, setEndDate] = useState<Date | null>(new Date());
-  const [loading, setLoading] = useState(false);
+  const [loadingRevenue, setLoadingRevenue] = useState(false);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [loadingTop, setLoadingTop] = useState(false);
+
+  const formatDate = (date: Date | null) => date ? date.toISOString().slice(0,10) : new Date().toISOString().slice(0,10);
+
+  const getRange = (): [string, string] => {
+    const now = startDate || new Date();
+    if(filterType === "day") return [formatDate(startDate), formatDate(endDate)];
+    if(filterType === "month") {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth() +1, 0);
+      return [formatDate(start), formatDate(end)];
+    }
+    const start = new Date(now.getFullYear(),0,1);
+    const end = new Date(now.getFullYear(),11,31);
+    return [formatDate(start), formatDate(end)];
+  }
 
   const fetchData = async () => {
-    setLoading(true);
+    const [start, end] = getRange();
+
+    setLoadingRevenue(true);
+    setLoadingOrders(true);
+    setLoadingTop(true);
+
     try {
-      let start: string = "";
-      let end: string = "";
-
-      if (filterType === "day") {
-        start = startDate ? startDate.toISOString().slice(0,10) : '';
-        end = endDate ? endDate.toISOString().slice(0,10) : '';
-      } else if (filterType === "month") {
-        const year = startDate?.getFullYear() ?? new Date().getFullYear();
-        const month = startDate?.getMonth() ?? 0;
-        start = new Date(year, month, 1).toISOString().slice(0,10);
-        end = new Date(year, month + 1, 0).toISOString().slice(0,10);
-      } else { // year
-        const year = startDate?.getFullYear() ?? new Date().getFullYear();
-        start = new Date(year, 0, 1).toISOString().slice(0,10);
-        end = new Date(year, 11, 31).toISOString().slice(0,10);
-      }
-
       const [revRes, ordRes, topRes] = await Promise.all([
         axios.get(`${API_BASE}/api/stats/revenue`, { params: { filter: filterType, start, end } }),
         axios.get(`${API_BASE}/api/stats/orders`, { params: { filter: filterType, start, end } }),
@@ -78,16 +83,22 @@ const Stats: React.FC = () => {
       setOrders([]);
       setTopProducts([]);
     } finally {
-      setLoading(false);
+      setLoadingRevenue(false);
+      setLoadingOrders(false);
+      setLoadingTop(false);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [filterType, startDate, endDate]);
+  useEffect(() => { fetchData(); }, [filterType, startDate, endDate]);
 
   const totalRevenue = revenue.reduce((sum, r) => sum + r.total, 0);
   const totalOrders = orders.reduce((sum, o) => sum + o.total_orders, 0);
+
+  const doughnutColors = topProducts.map((_, i) => `hsl(${i * 45 % 360}, 70%, 60%)`);
+
+  const renderChartLoading = () => (
+    <div className="flex justify-center items-center py-16 text-gray-500">Đang tải dữ liệu...</div>
+  );
 
   return (
     <div className="space-y-6 p-4">
@@ -150,7 +161,7 @@ const Stats: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="bg-white p-4 rounded shadow lg:col-span-2">
           <h2 className="text-lg font-semibold mb-2">Doanh thu theo {filterType}</h2>
-          {loading ? <p className="py-16 text-center text-gray-500">Đang tải dữ liệu...</p> :
+          {loadingRevenue ? renderChartLoading() :
           revenue.length ? (
             <div className="h-64">
               <Line
@@ -161,30 +172,30 @@ const Stats: React.FC = () => {
                 }}
               />
             </div>
-          ) : <p className="text-center text-gray-500 py-16">Không có dữ liệu</p>}
+          ) : renderChartLoading()}
         </div>
 
         <div className="bg-white p-4 rounded shadow">
           <h2 className="text-lg font-semibold mb-2">Top sản phẩm bán chạy</h2>
-          {loading ? <p className="py-16 text-center text-gray-500">Đang tải dữ liệu...</p> :
+          {loadingTop ? renderChartLoading() :
           topProducts.length ? (
             <div className="h-64 flex justify-center items-center">
               <Doughnut
                 options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }}
                 data={{
                   labels: topProducts.map(p => p.product_name),
-                  datasets: [{ label: "Số lượng bán", data: topProducts.map(p => p.sold), backgroundColor: ["#f87171","#fbbf24","#34d399","#3b82f6","#a78bfa","#f472b6","#facc15"], borderWidth: 1 }],
+                  datasets: [{ label: "Số lượng bán", data: topProducts.map(p => p.sold), backgroundColor: doughnutColors, borderWidth: 1 }],
                 }}
               />
             </div>
-          ) : <p className="text-center text-gray-500 py-16">Không có dữ liệu</p>}
+          ) : renderChartLoading()}
         </div>
       </div>
 
       {/* Biểu đồ số đơn hàng */}
       <div className="bg-white p-4 rounded shadow">
         <h2 className="text-lg font-semibold mb-2">Số đơn hàng theo {filterType}</h2>
-        {loading ? <p className="py-16 text-center text-gray-500">Đang tải dữ liệu...</p> :
+        {loadingOrders ? renderChartLoading() :
         orders.length ? (
           <div className="h-64">
             <Bar
@@ -192,7 +203,7 @@ const Stats: React.FC = () => {
               data={{ labels: orders.map(o => o.order_date), datasets: [{ label: "Số đơn", data: orders.map(o => o.total_orders), backgroundColor: "#3b82f6", borderRadius: 4 }] }}
             />
           </div>
-        ) : <p className="text-center text-gray-500 py-16">Không có dữ liệu</p>}
+        ) : renderChartLoading()}
       </div>
     </div>
   );
