@@ -12,7 +12,12 @@ CREATE TABLE Users (
     contact_add NVARCHAR(100),
     address NVARCHAR(255),
     email NVARCHAR(100),
-    role NVARCHAR(20) CHECK (role IN ('customer','seller','admin'))
+    role NVARCHAR(20) CHECK (role IN ('customer','seller','admin')),
+    otp NVARCHAR(20),
+    otp_expire DATETIME,
+    refresh_token NVARCHAR(255),
+    google_id NVARCHAR(100),
+    facebook_id NVARCHAR(100)
 );
 
 -- Bảng Categories

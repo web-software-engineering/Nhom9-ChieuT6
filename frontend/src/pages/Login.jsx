@@ -1,0 +1,242 @@
+import { useState } from "react";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
+import { LogIn } from "lucide-react";
+import api from "../api/api";
+
+const AUTH_PROFILE_KEY = "authUserProfile";
+const DISPLAY_NAME_KEY = "authDisplayName";
+
+function GoogleIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 shrink-0">
+      <path
+        d="M21.35 11.1H12v2.95h5.35c-.23 1.4-1.6 4.1-5.35 4.1-3.22 0-5.85-2.67-5.85-5.95S8.78 6.25 12 6.25c1.84 0 3.07.79 3.78 1.47l2.58-2.48C16.69 3.7 14.54 2.75 12 2.75c-5.19 0-9.4 4.21-9.4 9.4s4.21 9.4 9.4 9.4c5.41 0 8.99-3.8 8.99-9.16 0-.62-.07-1.09-.14-1.29Z"
+        fill="#4285F4"
+      />
+      <path
+        d="M3.76 8.99 6.85 11.2c.83-2.61 3.23-4.95 5.15-4.95 1.84 0 3.07.79 3.78 1.47l2.58-2.48C16.69 3.7 14.54 2.75 12 2.75c-3.74 0-6.96 2.15-8.24 5.24Z"
+        fill="#EA4335"
+      />
+      <path
+        d="M12 21.15c2.6 0 4.78-.86 6.37-2.34l-2.95-2.42c-.8.55-1.88.95-3.42.95-2.62 0-4.85-1.76-5.64-4.19L3.17 15.4C4.45 18.56 7.81 21.15 12 21.15Z"
+        fill="#34A853"
+      />
+      <path
+        d="M21.35 11.1H12v2.95h5.35c-.35 2.14-1.9 3.55-3.93 4.16l2.95 2.42c1.71-1.57 2.98-4.03 2.98-6.86 0-.62-.07-1.09-.14-1.29Z"
+        fill="#FBBC05"
+      />
+    </svg>
+  );
+}
+
+function FacebookIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 shrink-0">
+      <path
+        d="M12 2.5C6.75 2.5 2.5 6.64 2.5 11.75c0 4.62 3.55 8.43 8.13 9.12V14.3H8.1v-2.55h2.53v-1.94c0-2.48 1.52-3.84 3.75-3.84 1.07 0 1.99.08 2.26.12v2.62h-1.55c-1.22 0-1.46.57-1.46 1.42v1.62h2.93l-.38 2.55h-2.55v6.57c4.58-.69 8.12-4.5 8.12-9.12C21.5 6.64 17.25 2.5 12 2.5Z"
+        fill="#1877F2"
+      />
+      <path
+        d="M14.98 14.3h2.55l.38-2.55h-2.93v-1.62c0-.85.24-1.42 1.46-1.42h1.55V6.09c-.27-.04-1.19-.12-2.26-.12-2.23 0-3.75 1.36-3.75 3.84v1.94H8.1v2.55h2.53v6.57c.47.07.95.12 1.37.12.97 0 1.89-.12 2.98-.42V14.3Z"
+        fill="#ffffff"
+      />
+    </svg>
+  );
+}
+
+function getPostLoginPath(accessToken) {
+  try {
+    const decoded = jwtDecode(accessToken);
+    return decoded?.role === "admin" ? "/admin" : "/";
+  } catch {
+    return "/";
+  }
+}
+
+export default function Login() {
+  const navigate = useNavigate();
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const authBaseUrl =
+    import.meta.env.VITE_API_BASE ?? "http://localhost:5000/api";
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const accessToken = params.get("accessToken");
+    const refreshToken = params.get("refreshToken");
+
+    if (accessToken && refreshToken) {
+      let decoded = {};
+      try {
+        decoded = jwtDecode(accessToken);
+      } catch {
+        decoded = {};
+      }
+
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem(
+        AUTH_PROFILE_KEY,
+        JSON.stringify({
+          username: decoded?.username || "",
+          name: decoded?.name || decoded?.username || "",
+          email: decoded?.email || "",
+          role: decoded?.role || "user",
+          contact_add: "",
+          address: "",
+        }),
+      );
+      if (decoded?.name) {
+        localStorage.setItem(DISPLAY_NAME_KEY, decoded.name);
+      }
+      navigate(getPostLoginPath(accessToken), { replace: true });
+    }
+  }, [navigate]);
+
+  const handleLogin = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+
+    try {
+      const response = await api.post("/auth/login", {
+        identifier,
+        password,
+      });
+      const { accessToken, refreshToken, user } = response.data;
+
+      const decoded = jwtDecode(accessToken);
+
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem(
+        AUTH_PROFILE_KEY,
+        JSON.stringify({
+          username: user?.username || decoded?.username || "",
+          name: user?.name || decoded?.name || decoded?.username || "",
+          email: user?.email || decoded?.email || "",
+          role: user?.role || decoded?.role || "user",
+          contact_add: user?.contact_add || "",
+          address: user?.address || "",
+        }),
+      );
+      if (user?.name || decoded?.name) {
+        localStorage.setItem(DISPLAY_NAME_KEY, user?.name || decoded?.name);
+      }
+
+      navigate(getPostLoginPath(accessToken));
+    } catch (error) {
+      alert(error.response?.data?.message || error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOAuthLogin = (provider) => {
+    window.location.href = `${authBaseUrl}/auth/${provider}`;
+  };
+
+  return (
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8 sm:px-6 lg:px-8">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-grid-pattern opacity-40" />
+      <div className="pointer-events-none absolute left-0 top-0 -z-10 h-72 w-72 -translate-x-1/3 rounded-full bg-teal-300/25 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 right-0 -z-10 h-72 w-72 translate-x-1/3 rounded-full bg-orange-300/25 blur-3xl" />
+
+      <div className="w-full max-w-lg">
+        <form
+          onSubmit={handleLogin}
+          className="soft-card animate-float-up w-full p-6 sm:p-8"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-700">
+            Office Smart
+          </p>
+          <div className="mt-3 flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-lg shadow-slate-900/15">
+              <LogIn className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-slate-900">Đăng nhập</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Dùng tài khoản đã đăng ký để tiếp tục.
+              </p>
+            </div>
+          </div>
+
+          <label className="mt-6 block text-sm font-semibold text-slate-700">
+            Username hoặc email
+            <input
+              className="input-modern mt-2"
+              type="text"
+              value={identifier}
+              onChange={(event) => setIdentifier(event.target.value)}
+              placeholder="username hoặc you@example.com"
+              autoComplete="username"
+              required
+            />
+          </label>
+
+          <label className="mt-4 block text-sm font-semibold text-slate-700">
+            Password
+            <input
+              className="input-modern mt-2"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="••••••••"
+              autoComplete="current-password"
+              required
+            />
+          </label>
+
+          <button
+            className="primary-btn mt-6 w-full"
+            type="submit"
+            disabled={loading}
+          >
+            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+          </button>
+
+          <div className="mt-6 flex items-center gap-3">
+            <span className="h-px flex-1 bg-slate-200" />
+            <span className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+              Hoặc
+            </span>
+            <span className="h-px flex-1 bg-slate-200" />
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => handleOAuthLogin("google")}
+              className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              <GoogleIcon />
+              <span>Google</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleOAuthLogin("facebook")}
+              className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700"
+            >
+              <FacebookIcon />
+              <span>Facebook</span>
+            </button>
+          </div>
+
+          <p className="mt-5 text-center text-sm text-slate-500">
+            Chưa có tài khoản?{" "}
+            <button
+              type="button"
+              onClick={() => navigate("/register")}
+              className="font-semibold text-teal-700 transition hover:text-teal-800"
+            >
+              Đăng ký ngay
+            </button>
+          </p>
+        </form>
+      </div>
+    </div>
+  );
+}

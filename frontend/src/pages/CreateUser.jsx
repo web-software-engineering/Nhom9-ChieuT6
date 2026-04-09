@@ -7,6 +7,12 @@ function CreateUser() {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const apiRoot = (
+    import.meta.env.VITE_USERS_API_BASE ??
+    (import.meta.env.VITE_API_BASE
+      ? import.meta.env.VITE_API_BASE.replace(/\/api\/?$/, "")
+      : "http://localhost:5000")
+  ).replace(/\/+$/, "");
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -20,7 +26,7 @@ function CreateUser() {
     setError("");
 
     try {
-      const response = await fetch((import.meta.env.VITE_USERS_API_BASE ?? "https://nhom9-chieut6-backend.onrender.com") + "/users", {
+      const response = await fetch(`${apiRoot}/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -59,15 +65,22 @@ function CreateUser() {
             <UserPlus className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-900">Thêm người dùng</h1>
-            <p className="text-sm text-slate-500">Nhập thông tin để tạo tài khoản mới</p>
+            <h1 className="text-xl font-bold text-slate-900">
+              Thêm người dùng
+            </h1>
+            <p className="text-sm text-slate-500">
+              Nhập thông tin để tạo tài khoản mới
+            </p>
           </div>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-1.5">
-            <label htmlFor="name" className="text-sm font-semibold text-slate-700">
+            <label
+              htmlFor="name"
+              className="text-sm font-semibold text-slate-700"
+            >
               Tên người dùng
             </label>
             <input
@@ -89,14 +102,25 @@ function CreateUser() {
           )}
 
           <div className="flex gap-3 pt-1">
-            <button type="submit" disabled={loading} className="primary-btn flex flex-1 items-center justify-center gap-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="primary-btn flex flex-1 items-center justify-center gap-2"
+            >
               {loading ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Đang tạo…</>
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Đang tạo…
+                </>
               ) : (
-                <><UserPlus className="h-4 w-4" /> Tạo người dùng</>
+                <>
+                  <UserPlus className="h-4 w-4" /> Tạo người dùng
+                </>
               )}
             </button>
-            <Link to="/users" className="secondary-btn flex items-center justify-center px-5">
+            <Link
+              to="/users"
+              className="secondary-btn flex items-center justify-center px-5"
+            >
               Hủy
             </Link>
           </div>

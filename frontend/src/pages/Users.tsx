@@ -1,12 +1,27 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, Check, Loader2, Pencil, Plus, Trash2, Users as UsersIcon, X } from "lucide-react";
+import {
+  AlertCircle,
+  Check,
+  Loader2,
+  Pencil,
+  Plus,
+  Trash2,
+  Users as UsersIcon,
+  X,
+} from "lucide-react";
 
 type User = {
   id: number;
   name: string;
 };
 
-const API = (import.meta.env.VITE_USERS_API_BASE ?? "https://nhom9-chieut6-backend.onrender.com") + "/users";
+const API_ROOT = (
+  import.meta.env.VITE_USERS_API_BASE ??
+  (import.meta.env.VITE_API_BASE
+    ? import.meta.env.VITE_API_BASE.replace(/\/api\/?$/, "")
+    : "http://localhost:5000")
+).replace(/\/+$/, "");
+const API = `${API_ROOT}/users`;
 
 export default function Users() {
   const [users, setUsers] = useState<User[]>([]);
@@ -102,7 +117,9 @@ export default function Users() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Người dùng</h1>
-            <p className="text-sm text-slate-500">Quản lý danh sách tài khoản</p>
+            <p className="text-sm text-slate-500">
+              Quản lý danh sách tài khoản
+            </p>
           </div>
         </div>
         {!loading && (
@@ -114,7 +131,9 @@ export default function Users() {
 
       {/* Add user panel */}
       <div className="glass-panel rounded-2xl px-4 py-4 sm:px-5">
-        <p className="mb-3 text-sm font-semibold text-slate-700">Thêm người dùng mới</p>
+        <p className="mb-3 text-sm font-semibold text-slate-700">
+          Thêm người dùng mới
+        </p>
         <div className="flex flex-col gap-3 sm:flex-row">
           <input
             value={newName}
@@ -128,7 +147,11 @@ export default function Users() {
             disabled={adding || !newName.trim()}
             className="primary-btn inline-flex w-full items-center justify-center gap-2 sm:w-auto"
           >
-            {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            {adding ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
             Thêm
           </button>
         </div>
@@ -139,7 +162,10 @@ export default function Users() {
         <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
           <AlertCircle className="h-5 w-5 shrink-0" />
           <p className="flex-1 text-sm font-medium">{error}</p>
-          <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">
+          <button
+            onClick={() => setError(null)}
+            className="text-red-400 hover:text-red-600"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -173,12 +199,18 @@ export default function Users() {
                       />
                     ) : (
                       <>
-                        <p className="truncate text-base font-semibold text-slate-900">{u.name}</p>
-                        <p className="mt-1 text-xs text-slate-400">ID: {u.id}</p>
+                        <p className="truncate text-base font-semibold text-slate-900">
+                          {u.name}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          ID: {u.id}
+                        </p>
                       </>
                     )}
                   </div>
-                  <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-500">#{u.id}</span>
+                  <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-500">
+                    #{u.id}
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -230,15 +262,23 @@ export default function Users() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/70">
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">ID</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Tên</th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Hành động</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    ID
+                  </th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Tên
+                  </th>
+                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Hành động
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {users.map((u) => (
                   <tr key={u.id} className="transition hover:bg-slate-50/60">
-                    <td className="px-5 py-3 font-mono text-xs text-slate-400">{u.id}</td>
+                    <td className="px-5 py-3 font-mono text-xs text-slate-400">
+                      {u.id}
+                    </td>
                     <td className="px-5 py-3">
                       {editingId === u.id ? (
                         <input
@@ -251,7 +291,9 @@ export default function Users() {
                           className="input-modern py-1.5 text-sm"
                         />
                       ) : (
-                        <span className="font-semibold text-slate-800">{u.name}</span>
+                        <span className="font-semibold text-slate-800">
+                          {u.name}
+                        </span>
                       )}
                     </td>
                     <td className="px-5 py-3">
@@ -294,7 +336,10 @@ export default function Users() {
 
                 {users.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="px-5 py-16 text-center text-slate-400">
+                    <td
+                      colSpan={3}
+                      className="px-5 py-16 text-center text-slate-400"
+                    >
                       <UsersIcon className="mx-auto mb-3 h-10 w-10 opacity-30" />
                       <p>Chưa có người dùng nào.</p>
                     </td>
