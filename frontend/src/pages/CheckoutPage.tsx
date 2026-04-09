@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState } from "react";
 import {
   Package,
   Loader2,
@@ -8,74 +8,75 @@ import {
   Truck,
   ClipboardList,
   Smartphone,
-} from 'lucide-react';
-import { useCart } from '../contexts/CartContext';
-import { useNavigate } from '../components/Navigation';
+} from "lucide-react";
+import { useCart } from "../contexts/CartContext";
+import { useNavigate } from "../components/Navigation";
 import {
   createShippingOrder,
   getShippingFee,
   shippingLocationService,
   toShippingErrorMessage,
-} from '../services/shippingService';
-import MoMoPayment from '../components/MoMoPayment';
-import VNPayPayment from '../components/VNPayPayment';
+} from "../services/shippingService";
+import MoMoPayment from "../components/MoMoPayment";
+import VNPayPayment from "../components/VNPayPayment";
 
 const districtOptions = shippingLocationService.listDistricts();
-const defaultSenderDistrictId = districtOptions[0]?.id ?? '';
+const defaultSenderDistrictId = districtOptions[0]?.id ?? "";
 
 const initialFormData = {
-  receiverName: '',
-  phone: '',
-  address: '',
-  district: '',
-  ward: '',
+  receiverName: "",
+  phone: "",
+  address: "",
+  district: "",
+  ward: "",
   fromDistrict: defaultSenderDistrictId,
 };
 
-type CheckoutStep = 'info' | 'shipping' | 'payment' | 'success';
-type PaymentMethod = 'cod' | 'momo' | 'vnpay';
+type CheckoutStep = "info" | "shipping" | "payment" | "success";
+type PaymentMethod = "cod" | "momo" | "vnpay";
 
 export default function Checkout() {
   const { cartItems, getTotalPrice, getTotalWeight, clearCart } = useCart();
   const navigate = useNavigate();
 
-  const [step, setStep] = useState<CheckoutStep>('info');
+  const [step, setStep] = useState<CheckoutStep>("info");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const [formData, setFormData] = useState(initialFormData);
 
   const [shippingFee, setShippingFee] = useState(0);
-  const [orderCode, setOrderCode] = useState('');
+  const [orderCode, setOrderCode] = useState("");
   const [orderSubtotal, setOrderSubtotal] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
   const [momoOrderId] = useState(() => `ORDER_${Date.now()}`);
   const [vnpayOrderId] = useState(() => `VNPAY_${Date.now()}`);
-  const [shippingOrderCreated, setShippingOrderCreated] = useState(false);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
   ) => {
     const { name, value } = e.target;
 
     setFormData((current) => ({
       ...current,
       [name]: value,
-      ...(name === 'district' ? { ward: '' } : {}),
+      ...(name === "district" ? { ward: "" } : {}),
     }));
 
-    setError('');
+    setError("");
 
-    if (step === 'shipping') {
+    if (step === "shipping") {
       setShippingFee(0);
-      setStep('info');
+      setStep("info");
     }
   };
 
   const handleCalculateShipping = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
       const fee = await getShippingFee({
@@ -88,9 +89,14 @@ export default function Checkout() {
       });
 
       setShippingFee(fee.total);
-      setStep('shipping');
+      setStep("shipping");
     } catch (error) {
-      setError(toShippingErrorMessage(error, 'Không thể tính phí vận chuyển cho đơn hàng này.'));
+      setError(
+        toShippingErrorMessage(
+          error,
+          "Không thể tính phí vận chuyển cho đơn hàng này.",
+        ),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -99,14 +105,14 @@ export default function Checkout() {
   const handleSelectPaymentMethod = async (method: PaymentMethod) => {
     setPaymentMethod(method);
 
-    if (method === 'momo' || method === 'vnpay') {
-      setStep('payment');
+    if (method === "momo" || method === "vnpay") {
+      setStep("payment");
       return;
     }
 
     // COD: tạo đơn GHN ngay và chuyển sang thành công
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
       const order = await createShippingOrder({
@@ -114,7 +120,9 @@ export default function Checkout() {
         phone: formData.phone.trim(),
         address: formData.address.trim(),
         districtId: formData.district,
-        districtName: shippingLocationService.getDistrictName(formData.district),
+        districtName: shippingLocationService.getDistrictName(
+          formData.district,
+        ),
         wardId: formData.ward,
         wardName: shippingLocationService.getWardName(formData.ward),
         weightKg: getTotalWeight(),
@@ -123,19 +131,20 @@ export default function Checkout() {
 
       setOrderCode(order.orderCode);
       setOrderSubtotal(getTotalPrice());
-      setShippingOrderCreated(true);
-      setStep('success');
+      setStep("success");
       clearCart();
     } catch (error) {
-      setError(toShippingErrorMessage(error, 'Khong the tao don giao hang luc nay.'));
+      setError(
+        toShippingErrorMessage(error, "Khong the tao don giao hang luc nay."),
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleMoMoSuccess = async (transactionId?: string) => {
+  const handleMoMoSuccess = async (_transactionId?: string) => {
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
       const order = await createShippingOrder({
@@ -143,7 +152,9 @@ export default function Checkout() {
         phone: formData.phone.trim(),
         address: formData.address.trim(),
         districtId: formData.district,
-        districtName: shippingLocationService.getDistrictName(formData.district),
+        districtName: shippingLocationService.getDistrictName(
+          formData.district,
+        ),
         wardId: formData.ward,
         wardName: shippingLocationService.getWardName(formData.ward),
         weightKg: getTotalWeight(),
@@ -152,11 +163,15 @@ export default function Checkout() {
 
       setOrderCode(order.orderCode);
       setOrderSubtotal(getTotalPrice());
-      setShippingOrderCreated(true);
-      setStep('success');
+      setStep("success");
       clearCart();
     } catch (error) {
-      setError(toShippingErrorMessage(error, 'Khong the tao don giao hang luc nay. Vui long lien he cua hang.'));
+      setError(
+        toShippingErrorMessage(
+          error,
+          "Khong the tao don giao hang luc nay. Vui long lien he cua hang.",
+        ),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -166,9 +181,9 @@ export default function Checkout() {
     setError(message);
   };
 
-  const handleVNPaySuccess = async (transactionId?: string) => {
+  const handleVNPaySuccess = async (_transactionId?: string) => {
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
       const order = await createShippingOrder({
@@ -176,7 +191,9 @@ export default function Checkout() {
         phone: formData.phone.trim(),
         address: formData.address.trim(),
         districtId: formData.district,
-        districtName: shippingLocationService.getDistrictName(formData.district),
+        districtName: shippingLocationService.getDistrictName(
+          formData.district,
+        ),
         wardId: formData.ward,
         wardName: shippingLocationService.getWardName(formData.ward),
         weightKg: getTotalWeight(),
@@ -185,11 +202,15 @@ export default function Checkout() {
 
       setOrderCode(order.orderCode);
       setOrderSubtotal(getTotalPrice());
-      setShippingOrderCreated(true);
-      setStep('success');
+      setStep("success");
       clearCart();
     } catch (error) {
-      setError(toShippingErrorMessage(error, 'Khong the tao don giao hang luc nay. Vui long lien he cua hang.'));
+      setError(
+        toShippingErrorMessage(
+          error,
+          "Khong the tao don giao hang luc nay. Vui long lien he cua hang.",
+        ),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -200,37 +221,41 @@ export default function Checkout() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
     }).format(amount);
   };
 
   const filteredWards = useMemo(
     () => shippingLocationService.listWardsByDistrict(formData.district),
-    [formData.district]
+    [formData.district],
   );
 
   const currentStepIndex =
-    step === 'info' ? 0 : step === 'shipping' ? 1 : step === 'payment' ? 2 : 3;
+    step === "info" ? 0 : step === "shipping" ? 1 : step === "payment" ? 2 : 3;
 
   const checkoutSteps = [
-    { id: 'info', label: 'Thông tin', icon: UserRound },
-    { id: 'shipping', label: 'Vận chuyển', icon: Truck },
-    { id: 'payment', label: 'Thanh toán', icon: Smartphone },
-    { id: 'success', label: 'Hoàn tất', icon: CheckCircle2 },
+    { id: "info", label: "Thông tin", icon: UserRound },
+    { id: "shipping", label: "Vận chuyển", icon: Truck },
+    { id: "payment", label: "Thanh toán", icon: Smartphone },
+    { id: "success", label: "Hoàn tất", icon: CheckCircle2 },
   ];
 
-  if (cartItems.length === 0 && step !== 'success') {
+  if (cartItems.length === 0 && step !== "success") {
     return (
       <div className="soft-card p-8 text-center animate-fade-in">
         <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
           <Package className="h-10 w-10" />
         </div>
-        <h3 className="text-2xl font-bold text-slate-900">Chưa có sản phẩm để thanh toán</h3>
-        <p className="mt-2 text-slate-600">Vui lòng thêm sản phẩm vào giỏ hàng trước khi tiếp tục.</p>
+        <h3 className="text-2xl font-bold text-slate-900">
+          Chưa có sản phẩm để thanh toán
+        </h3>
+        <p className="mt-2 text-slate-600">
+          Vui lòng thêm sản phẩm vào giỏ hàng trước khi tiếp tục.
+        </p>
         <button
-          onClick={() => navigate('home')}
+          onClick={() => navigate("home")}
           className="secondary-btn mt-6"
           type="button"
         >
@@ -240,38 +265,54 @@ export default function Checkout() {
     );
   }
 
-  if (step === 'success') {
+  if (step === "success") {
     return (
       <div className="soft-card p-7 sm:p-8 animate-fade-in">
         <div className="text-center mb-6">
           <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
             <CheckCircle2 className="h-12 w-12" />
           </div>
-          <h2 className="text-3xl font-bold text-slate-900">Đặt hàng thành công</h2>
+          <h2 className="text-3xl font-bold text-slate-900">
+            Đặt hàng thành công
+          </h2>
           <p className="mt-2 text-slate-600">
-            {paymentMethod === 'momo'
-              ? 'Thanh toán MoMo thành công. Mã đơn đã được tạo và gửi qua hệ thống GHN.'
-              : paymentMethod === 'vnpay'
-              ? 'Thanh toán VNPay thành công. Mã đơn đã được tạo và gửi qua hệ thống GHN.'
-              : 'Mã đơn đã được tạo và gửi qua hệ thống GHN.'}
+            {paymentMethod === "momo"
+              ? "Thanh toán MoMo thành công. Mã đơn đã được tạo và gửi qua hệ thống GHN."
+              : paymentMethod === "vnpay"
+                ? "Thanh toán VNPay thành công. Mã đơn đã được tạo và gửi qua hệ thống GHN."
+                : "Mã đơn đã được tạo và gửi qua hệ thống GHN."}
           </p>
         </div>
 
         <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-6">
-          <label className="block text-sm text-slate-600">Mã đơn hàng của bạn</label>
-          <div className="mt-3 text-center text-3xl font-bold text-slate-900">{orderCode}</div>
+          <label className="block text-sm text-slate-600">
+            Mã đơn hàng của bạn
+          </label>
+          <div className="mt-3 text-center text-3xl font-bold text-slate-900">
+            {orderCode}
+          </div>
           <div className="mt-3 flex items-center justify-center gap-2">
-            <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${
-              paymentMethod === 'momo'
-                ? 'bg-pink-100 text-pink-700'
-                : paymentMethod === 'vnpay'
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-slate-200 text-slate-700'
-            }`}>
-              {paymentMethod === 'momo' ? '📱 MoMo' : paymentMethod === 'vnpay' ? '💳 VNPay' : '💵 COD'}
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${
+                paymentMethod === "momo"
+                  ? "bg-pink-100 text-pink-700"
+                  : paymentMethod === "vnpay"
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-slate-200 text-slate-700"
+              }`}
+            >
+              {paymentMethod === "momo"
+                ? "📱 MoMo"
+                : paymentMethod === "vnpay"
+                  ? "💳 VNPay"
+                  : "💵 COD"}
             </span>
             <span className="text-sm text-slate-600">
-              {paymentMethod === 'momo' ? 'Đã thanh toán trước' : paymentMethod === 'vnpay' ? 'Đã thanh toán trước' : 'Thanh toán khi nhận hàng'}
+              {paymentMethod === "momo"
+                ? "Đã thanh toán trước"
+                : paymentMethod === "vnpay"
+                  ? "Đã thanh toán trước"
+                  : "Thanh toán khi nhận hàng"}
             </span>
           </div>
         </div>
@@ -285,30 +326,42 @@ export default function Checkout() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-500">Người nhận:</span>
-              <span className="font-semibold text-slate-800">{formData.receiverName}</span>
+              <span className="font-semibold text-slate-800">
+                {formData.receiverName}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Số điện thoại:</span>
-              <span className="font-semibold text-slate-800">{formData.phone}</span>
+              <span className="font-semibold text-slate-800">
+                {formData.phone}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Tiền hàng:</span>
-              <span className="font-semibold text-slate-800">{formatCurrency(orderSubtotal)}</span>
+              <span className="font-semibold text-slate-800">
+                {formatCurrency(orderSubtotal)}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Phí vận chuyển:</span>
-              <span className="font-semibold text-slate-800">{formatCurrency(shippingFee)}</span>
+              <span className="font-semibold text-slate-800">
+                {formatCurrency(shippingFee)}
+              </span>
             </div>
             <div className="flex justify-between border-t border-slate-200 pt-3">
-              <span className="text-base font-bold text-slate-900">Tổng cộng:</span>
-              <span className="text-base font-bold text-slate-900">{formatCurrency(orderSubtotal + shippingFee)}</span>
+              <span className="text-base font-bold text-slate-900">
+                Tổng cộng:
+              </span>
+              <span className="text-base font-bold text-slate-900">
+                {formatCurrency(orderSubtotal + shippingFee)}
+              </span>
             </div>
           </div>
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
           <button
-            onClick={() => navigate('tracking')}
+            onClick={() => navigate("tracking")}
             className="primary-btn"
             type="button"
           >
@@ -316,13 +369,13 @@ export default function Checkout() {
           </button>
           <button
             onClick={() => {
-              setStep('info');
+              setStep("info");
               setOrderSubtotal(0);
               setShippingFee(0);
-              setOrderCode('');
-              setError('');
+              setOrderCode("");
+              setError("");
               setFormData(initialFormData);
-              navigate('home');
+              navigate("home");
             }}
             className="secondary-btn"
             type="button"
@@ -339,7 +392,7 @@ export default function Checkout() {
       <div className="lg:col-span-2">
         <div className="soft-card p-6 sm:p-7">
           <button
-            onClick={() => navigate('cart')}
+            onClick={() => navigate("cart")}
             className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-800"
             type="button"
           >
@@ -347,7 +400,9 @@ export default function Checkout() {
             Quay lại giỏ hàng
           </button>
 
-          <h2 className="text-2xl font-bold text-slate-900">Thông tin giao hàng</h2>
+          <h2 className="text-2xl font-bold text-slate-900">
+            Thông tin giao hàng
+          </h2>
 
           <div className="mb-6 mt-5 flex flex-wrap gap-2">
             {checkoutSteps.map((item, index) => {
@@ -359,10 +414,10 @@ export default function Checkout() {
                   key={item.id}
                   className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ${
                     isDone
-                      ? 'bg-emerald-100 text-emerald-700'
+                      ? "bg-emerald-100 text-emerald-700"
                       : isActive
-                        ? 'bg-slate-900 text-white'
-                        : 'bg-slate-100 text-slate-500'
+                        ? "bg-slate-900 text-white"
+                        : "bg-slate-100 text-slate-500"
                   }`}
                 >
                   <item.icon className="h-4 w-4" />
@@ -470,7 +525,7 @@ export default function Checkout() {
               </div>
             )}
 
-            {step === 'info' && (
+            {step === "info" && (
               <button
                 type="submit"
                 disabled={isLoading}
@@ -482,15 +537,17 @@ export default function Checkout() {
                     Đang tính phí...
                   </>
                 ) : (
-                  'Tính phí vận chuyển'
+                  "Tính phí vận chuyển"
                 )}
               </button>
             )}
           </form>
 
-          {step === 'shipping' && (
+          {step === "shipping" && (
             <div className="mt-6 animate-fade-in rounded-2xl border border-teal-200 bg-teal-50/70 p-6">
-              <h3 className="mb-4 font-bold text-slate-900">Phí vận chuyển đã được tính</h3>
+              <h3 className="mb-4 font-bold text-slate-900">
+                Phí vận chuyển đã được tính
+              </h3>
               <div className="mb-4 flex items-center justify-between">
                 <span className="text-slate-600">Phí giao hàng:</span>
                 <span className="text-2xl font-bold text-slate-900">
@@ -498,21 +555,25 @@ export default function Checkout() {
                 </span>
               </div>
 
-              <h4 className="mb-3 text-sm font-bold text-slate-700">Chọn phương thức thanh toán</h4>
+              <h4 className="mb-3 text-sm font-bold text-slate-700">
+                Chọn phương thức thanh toán
+              </h4>
 
               <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <button
-                  onClick={() => handleSelectPaymentMethod('cod')}
+                  onClick={() => handleSelectPaymentMethod("cod")}
                   disabled={isLoading}
                   className="flex flex-col items-center gap-2 rounded-xl border-2 border-slate-200 bg-white p-4 font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                   type="button"
                 >
                   <div className="text-3xl">💵</div>
-                  <span className="text-center">Thanh toán khi nhận hàng (COD)</span>
+                  <span className="text-center">
+                    Thanh toán khi nhận hàng (COD)
+                  </span>
                 </button>
 
                 <button
-                  onClick={() => handleSelectPaymentMethod('momo')}
+                  onClick={() => handleSelectPaymentMethod("momo")}
                   disabled={isLoading}
                   className="flex flex-col items-center gap-2 rounded-xl border-2 border-pink-200 bg-pink-50 p-4 font-semibold text-pink-700 transition hover:border-pink-400 hover:bg-pink-100 disabled:cursor-not-allowed disabled:opacity-50"
                   type="button"
@@ -522,7 +583,7 @@ export default function Checkout() {
                 </button>
 
                 <button
-                  onClick={() => handleSelectPaymentMethod('vnpay')}
+                  onClick={() => handleSelectPaymentMethod("vnpay")}
                   disabled={isLoading}
                   className="flex flex-col items-center gap-2 rounded-xl border-2 border-blue-200 bg-blue-50 p-4 font-semibold text-blue-700 transition hover:border-blue-400 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
                   type="button"
@@ -547,12 +608,12 @@ export default function Checkout() {
             </div>
           )}
 
-          {step === 'payment' && (
+          {step === "payment" && (
             <div className="mt-4 animate-fade-in soft-card p-6 sm:p-7">
               <button
                 onClick={() => {
-                  setStep('shipping');
-                  setError('');
+                  setStep("shipping");
+                  setError("");
                 }}
                 className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-800"
                 type="button"
@@ -561,9 +622,11 @@ export default function Checkout() {
                 Quay lại chọn thanh toán
               </button>
 
-              {paymentMethod === 'momo' && (
+              {paymentMethod === "momo" && (
                 <>
-                  <h2 className="text-2xl font-bold text-slate-900">Thanh toán MoMo</h2>
+                  <h2 className="text-2xl font-bold text-slate-900">
+                    Thanh toán MoMo
+                  </h2>
 
                   {error && (
                     <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
@@ -580,15 +643,17 @@ export default function Checkout() {
                       customerPhone={formData.phone}
                       onSuccess={handleMoMoSuccess}
                       onError={handleMoMoError}
-                      onCancel={() => setStep('shipping')}
+                      onCancel={() => setStep("shipping")}
                     />
                   </div>
                 </>
               )}
 
-              {paymentMethod === 'vnpay' && (
+              {paymentMethod === "vnpay" && (
                 <>
-                  <h2 className="text-2xl font-bold text-slate-900">Thanh toán VNPay</h2>
+                  <h2 className="text-2xl font-bold text-slate-900">
+                    Thanh toán VNPay
+                  </h2>
 
                   {error && (
                     <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
@@ -605,7 +670,7 @@ export default function Checkout() {
                       customerPhone={formData.phone}
                       onSuccess={handleVNPaySuccess}
                       onError={handleVNPayError}
-                      onCancel={() => setStep('shipping')}
+                      onCancel={() => setStep("shipping")}
                     />
                   </div>
                 </>
@@ -628,7 +693,9 @@ export default function Checkout() {
                   className="h-14 w-14 rounded-lg border border-slate-200 object-cover"
                 />
                 <div className="min-w-0 flex-grow">
-                  <p className="truncate font-semibold text-slate-800">{item.product.name}</p>
+                  <p className="truncate font-semibold text-slate-800">
+                    {item.product.name}
+                  </p>
                   <p className="text-slate-500">SL: {item.quantity}</p>
                 </div>
                 <p className="font-bold text-slate-900">
@@ -641,16 +708,20 @@ export default function Checkout() {
           <div className="mt-5 space-y-2 border-t border-slate-200 pt-4">
             <div className="flex justify-between">
               <span className="text-slate-600">Tạm tính:</span>
-              <span className="font-semibold">{formatCurrency(getTotalPrice())}</span>
+              <span className="font-semibold">
+                {formatCurrency(getTotalPrice())}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">Phí vận chuyển:</span>
               <span className="font-semibold">
-                {shippingFee > 0 ? formatCurrency(shippingFee) : 'Chưa tính'}
+                {shippingFee > 0 ? formatCurrency(shippingFee) : "Chưa tính"}
               </span>
             </div>
             <div className="flex justify-between border-t border-slate-200 pt-3">
-              <span className="text-lg font-bold text-slate-900">Tổng cộng:</span>
+              <span className="text-lg font-bold text-slate-900">
+                Tổng cộng:
+              </span>
               <span className="text-xl font-bold text-slate-900">
                 {formatCurrency(getTotalPrice() + shippingFee)}
               </span>

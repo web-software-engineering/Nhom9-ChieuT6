@@ -14,7 +14,7 @@ export interface MoMoPaymentRequest {
   customerEmail?: string;
 }
 
-interface MoMoPaymentResponse {
+export interface MoMoPaymentResponse {
   requestId: string;
   orderId: string;
   amount: number;
@@ -43,16 +43,19 @@ export class MoMoServiceError extends Error {
 
   constructor(message: string, status?: number) {
     super(message);
-    this.name = 'MoMoServiceError';
+    this.name = "MoMoServiceError";
     this.status = status;
   }
 }
 
 const MOMO_API_BASE = import.meta.env.VITE_API_BASE_URL
   ? `${import.meta.env.VITE_API_BASE_URL}/api/momo`
-  : '/api/momo';
+  : "/api/momo";
 
-const getErrorMessage = (error: unknown, fallback = 'Đã xảy ra lỗi không xác định') => {
+const getErrorMessage = (
+  error: unknown,
+  fallback = "Đã xảy ra lỗi không xác định",
+) => {
   if (error instanceof MoMoServiceError) return error.message;
   if (error instanceof Error) return error.message;
   return fallback;
@@ -60,12 +63,12 @@ const getErrorMessage = (error: unknown, fallback = 'Đã xảy ra lỗi không 
 
 const requestJson = async <T>(
   path: string,
-  init: RequestInit = {}
+  init: RequestInit = {},
 ): Promise<T> => {
   const headers = new Headers(init.headers);
-  headers.set('Accept', 'application/json');
-  if (init.body && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
+  headers.set("Accept", "application/json");
+  if (init.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
   }
 
   const response = await fetch(`${MOMO_API_BASE}${path}`, {
@@ -78,12 +81,15 @@ const requestJson = async <T>(
   if (!response.ok) {
     throw new MoMoServiceError(
       body.message || `Yêu cầu thất bại (mã ${response.status})`,
-      response.status
+      response.status,
     );
   }
 
   if (!body.success) {
-    throw new MoMoServiceError(body.message || 'Tạo thanh toán MoMo thất bại', response.status);
+    throw new MoMoServiceError(
+      body.message || "Tạo thanh toán MoMo thất bại",
+      response.status,
+    );
   }
 
   return body.data as T;
@@ -93,10 +99,10 @@ const requestJson = async <T>(
  * Tạo thanh toán MoMo QR - gọi backend để tạo payment
  */
 export const createMoMoPayment = async (
-  payload: MoMoPaymentRequest
+  payload: MoMoPaymentRequest,
 ): Promise<MoMoPaymentResponse> => {
-  return requestJson<MoMoPaymentResponse>('/create', {
-    method: 'POST',
+  return requestJson<MoMoPaymentResponse>("/create", {
+    method: "POST",
     body: JSON.stringify(payload),
   });
 };
@@ -105,10 +111,10 @@ export const createMoMoPayment = async (
  * Tạo QR code thanh toán MoMo (cho test/demo)
  */
 export const createMoMoQR = async (
-  payload: MoMoPaymentRequest
+  payload: MoMoPaymentRequest,
 ): Promise<MoMoPaymentResponse> => {
-  return requestJson<MoMoPaymentResponse>('/create-qr', {
-    method: 'POST',
+  return requestJson<MoMoPaymentResponse>("/create-qr", {
+    method: "POST",
     body: JSON.stringify(payload),
   });
 };
@@ -116,7 +122,9 @@ export const createMoMoQR = async (
 /**
  * Kiểm tra trạng thái thanh toán MoMo
  */
-export const checkMoMoStatus = async (orderId: string): Promise<MoMoStatusResponse> => {
+export const checkMoMoStatus = async (
+  orderId: string,
+): Promise<MoMoStatusResponse> => {
   const params = new URLSearchParams({ orderId });
   const response = await fetch(`${MOMO_API_BASE}/status?${params}`);
   return response.json() as Promise<MoMoStatusResponse>;

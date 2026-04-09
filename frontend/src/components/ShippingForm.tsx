@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 // Đảm bảo file districts.ts nằm trong thư mục src/data/ để import dễ dàng hơn
-import { districts } from "../data/districts"; 
+import { districts } from "../data/districts";
 
 const ShippingForm = () => {
   const [selectedDistrict, setSelectedDistrict] = useState("");
@@ -8,7 +8,9 @@ const ShippingForm = () => {
   const [wards, setWards] = useState<string[]>([]);
 
   // Mỗi khi quận thay đổi, cập nhật lại danh sách phường và reset phường cũ
-  const handleDistrictChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleDistrictChange = (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
     const district = event.target.value;
     setSelectedDistrict(district);
     setSelectedWard(""); // Reset phường khi đổi quận
@@ -18,14 +20,16 @@ const ShippingForm = () => {
   return (
     <div className="space-y-4 p-4 border rounded-xl bg-white/50 shadow-sm">
       <h2 className="text-lg font-bold text-slate-900">Thông tin giao hàng</h2>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Chọn Quận/Huyện */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Quận/Huyện:</label>
-          <select 
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Quận/Huyện:
+          </label>
+          <select
             className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-            value={selectedDistrict} 
+            value={selectedDistrict}
             onChange={handleDistrictChange}
           >
             <option value="">-- Chọn quận/huyện --</option>
@@ -39,8 +43,10 @@ const ShippingForm = () => {
 
         {/* Chọn Phường/Xã */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Phường/Xã:</label>
-          <select 
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Phường/Xã:
+          </label>
+          <select
             className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             disabled={!wards.length}
             value={selectedWard}
