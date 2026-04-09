@@ -125,8 +125,18 @@ export default function AdminLayout() {
                       exit={{ opacity: 0, y: -10 }}
                       className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 shadow-lg rounded-lg border z-50"
                     >
-                      <button onClick={() => { setOpenModal(true); setOpenMenu(false); }} className="w-full px-4 py-2 flex gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"><Key size={16} /> Đổi mật khẩu</button>
-                      <button onClick={handleLogout} className="w-full px-4 py-2 flex gap-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-700"><LogOut size={16} /> Đăng xuất</button>
+                      <button
+                        onClick={() => { setOpenModal(true); setOpenMenu(false); }}
+                        className="w-full px-4 py-2 flex gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <Key size={16} /> Đổi mật khẩu
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full px-4 py-2 flex gap-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-700"
+                      >
+                        <LogOut size={16} /> Đăng xuất
+                      </button>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -134,7 +144,9 @@ export default function AdminLayout() {
             </div>
           </header>
 
-          <main className="flex-1 p-6"><div className="overflow-x-auto"><Outlet /></div></main>
+          <main className="flex-1 p-6">
+            <div className="overflow-x-auto"><Outlet /></div>
+          </main>
         </div>
 
         {/* MODAL */}
@@ -148,23 +160,61 @@ export default function AdminLayout() {
               onClick={() => setOpenModal(false)}
             >
               <motion.div
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
                 initial={{ scale: 0.8, y: 40 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.8, y: 40 }}
                 className="bg-white dark:bg-gray-800 p-6 rounded-xl w-96"
               >
                 <h2 className="text-lg font-bold mb-4">🔐 Đổi mật khẩu</h2>
-                <input type="password" placeholder="Mật khẩu cũ" value={oldPass} onChange={(e) => setOldPass(e.target.value)} className="w-full border p-2 mb-2 rounded bg-white dark:bg-gray-700 text-black dark:text-white"/>
+
+                <input
+                  type="password"
+                  placeholder="Mật khẩu cũ"
+                  value={oldPass}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOldPass(e.target.value)}
+                  className="w-full border p-2 mb-2 rounded bg-white dark:bg-gray-700 text-black dark:text-white"
+                />
+
                 <div className="relative">
-                  <input type={show ? "text" : "password"} placeholder="Mật khẩu mới" value={newPass} onChange={(e) => setNewPass(e.target.value)} className="w-full border p-2 mb-2 rounded bg-white dark:bg-gray-700 text-black dark:text-white"/>
-                  <span onClick={() => setShow(!show)} className="absolute right-2 top-2 cursor-pointer">{show ? <EyeOff size={18}/> : <Eye size={18}/>}</span>
+                  <input
+                    type={show ? "text" : "password"}
+                    placeholder="Mật khẩu mới"
+                    value={newPass}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPass(e.target.value)}
+                    className="w-full border p-2 mb-2 rounded bg-white dark:bg-gray-700 text-black dark:text-white"
+                  />
+                  <span
+                    onClick={() => setShow(!show)}
+                    className="absolute right-2 top-2 cursor-pointer"
+                  >
+                    {show ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </span>
                 </div>
-                <input type="password" placeholder="Xác nhận mật khẩu" value={confirm} onChange={(e) => setConfirm(e.target.value)} className="w-full border p-2 mb-2 rounded bg-white dark:bg-gray-700 text-black dark:text-white"/>
+
+                <input
+                  type="password"
+                  placeholder="Xác nhận mật khẩu"
+                  value={confirm}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirm(e.target.value)}
+                  className="w-full border p-2 mb-2 rounded bg-white dark:bg-gray-700 text-black dark:text-white"
+                />
+
                 {error && <p className="text-red-500 text-sm">{error}</p>}
+
                 <div className="flex justify-end gap-2 mt-4">
-                  <button onClick={() => setOpenModal(false)} className="px-3 py-1 bg-gray-300 rounded dark:bg-gray-600">Hủy</button>
-                  <button onClick={handleChangePassword} className="px-3 py-1 bg-blue-500 text-white rounded">Lưu</button>
+                  <button
+                    onClick={() => setOpenModal(false)}
+                    className="px-3 py-1 bg-gray-300 rounded dark:bg-gray-600"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleChangePassword}
+                    className="px-3 py-1 bg-blue-500 text-white rounded"
+                  >
+                    Lưu
+                  </button>
                 </div>
               </motion.div>
             </motion.div>

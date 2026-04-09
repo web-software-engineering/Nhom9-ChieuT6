@@ -45,27 +45,31 @@ const Stats: React.FC = () => {
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [loadingTop, setLoadingTop] = useState(false);
 
-  const formatDate = (date: Date | null) => date ? date.toISOString().slice(0,10) : new Date().toISOString().slice(0,10);
+  // Chuyển Date -> YYYY-MM-DD
+  const formatDate = (date: Date) => {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
 
   const getRange = (): [string, string] => {
     const now = startDate || new Date();
-    if(filterType === "day") return [formatDate(startDate), formatDate(endDate)];
+    if(filterType === "day") return [formatDate(startDate || new Date()), formatDate(endDate || new Date())];
     if(filterType === "month") {
       const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      const end = new Date(now.getFullYear(), now.getMonth() +1, 0);
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       return [formatDate(start), formatDate(end)];
     }
-    const start = new Date(now.getFullYear(),0,1);
-    const end = new Date(now.getFullYear(),11,31);
+    // year
+    const start = new Date(now.getFullYear(), 0, 1);
+    const end = new Date(now.getFullYear(), 11, 31);
     return [formatDate(start), formatDate(end)];
-  }
+  };
 
   const fetchData = async () => {
     const [start, end] = getRange();
-
-    setLoadingRevenue(true);
-    setLoadingOrders(true);
-    setLoadingTop(true);
+    setLoadingRevenue(true); setLoadingOrders(true); setLoadingTop(true);
 
     try {
       const [revRes, ordRes, topRes] = await Promise.all([
@@ -79,13 +83,9 @@ const Stats: React.FC = () => {
       setTopProducts(topRes.data || []);
     } catch (err) {
       console.error(err);
-      setRevenue([]);
-      setOrders([]);
-      setTopProducts([]);
+      setRevenue([]); setOrders([]); setTopProducts([]);
     } finally {
-      setLoadingRevenue(false);
-      setLoadingOrders(false);
-      setLoadingTop(false);
+      setLoadingRevenue(false); setLoadingOrders(false); setLoadingTop(false);
     }
   };
 
@@ -93,7 +93,6 @@ const Stats: React.FC = () => {
 
   const totalRevenue = revenue.reduce((sum, r) => sum + r.total, 0);
   const totalOrders = orders.reduce((sum, o) => sum + o.total_orders, 0);
-
   const doughnutColors = topProducts.map((_, i) => `hsl(${i * 45 % 360}, 70%, 60%)`);
 
   const renderChartLoading = () => (
@@ -117,14 +116,20 @@ const Stats: React.FC = () => {
 
         {filterType === "day" && (
           <div className="flex gap-2 items-center">
-            <DatePicker selected={startDate} onChange={setStartDate} className="border rounded p-1" dateFormat="yyyy-MM-dd" />
+            <DatePicker selected={startDate} onChange={date => setStartDate(date)} className="border rounded p-1" dateFormat="yyyy-MM-dd" />
             <span>→</span>
-            <DatePicker selected={endDate} onChange={setEndDate} className="border rounded p-1" dateFormat="yyyy-MM-dd" />
+            <DatePicker selected={endDate} onChange={date => setEndDate(date)} className="border rounded p-1" dateFormat="yyyy-MM-dd" />
           </div>
         )}
 
         {filterType === "month" && (
-          <DatePicker selected={startDate} onChange={setStartDate} className="border rounded p-1" dateFormat="MM/yyyy" showMonthYearPicker />
+          <DatePicker
+            selected={startDate}
+            onChange={date => setStartDate(date)}
+            className="border rounded p-1"
+            dateFormat="MM/yyyy"
+            showMonthYearPicker
+          />
         )}
 
         {filterType === "year" && (
@@ -157,7 +162,7 @@ const Stats: React.FC = () => {
         </div>
       </div>
 
-      {/* Biểu đồ doanh thu + top sản phẩm */}
+      {/* Biểu đồ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="bg-white p-4 rounded shadow lg:col-span-2">
           <h2 className="text-lg font-semibold mb-2">Doanh thu theo {filterType}</h2>
@@ -192,7 +197,7 @@ const Stats: React.FC = () => {
         </div>
       </div>
 
-      {/* Biểu đồ số đơn hàng */}
+      {/* Số đơn hàng */}
       <div className="bg-white p-4 rounded shadow">
         <h2 className="text-lg font-semibold mb-2">Số đơn hàng theo {filterType}</h2>
         {loadingOrders ? renderChartLoading() :
