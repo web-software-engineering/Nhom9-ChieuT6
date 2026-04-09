@@ -18,6 +18,12 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+import cartRoutes from "./services/cartService.js";
+
+// ...
+
+app.use("/api", cartRoutes);
+
 
 app.get("/", (req, res) => {
   res.json({ message: "Backend GHN running" });
