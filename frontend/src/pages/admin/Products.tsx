@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
+// ✅ TypeScript interfaces
 interface Category {
   category_ID: number;
   category_name: string;
@@ -11,15 +12,16 @@ interface Product {
   category_ID: number;
   seller_ID: number;
   product_name: string;
-  product_image: string;
+  product_image: string | null;
   category_name?: string;
   price: number;
   number: number;
   import_date?: string;
 }
 
-const API_URL_PRODUCTS = "http://localhost:3000/api/products";
-const API_URL_CATEGORIES = "http://localhost:3000/api/categories";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_URL_PRODUCTS = API_URL + "/api/products";
+const API_URL_CATEGORIES = API_URL + "/api/categories";
 
 const ProductManagement: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -28,6 +30,8 @@ const ProductManagement: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(true);
 
   const [form, setForm] = useState({
     category_ID: 0,
@@ -35,7 +39,7 @@ const ProductManagement: React.FC = () => {
     price: "",
     number: "",
     product_image: null as File | null,
-    import_date: "", // thêm ngày nhập
+    import_date: "",
   });
 
   useEffect(() => {
@@ -44,13 +48,29 @@ const ProductManagement: React.FC = () => {
   }, []);
 
   const fetchProducts = async () => {
-    const res = await axios.get<Product[]>(API_URL_PRODUCTS);
-    setProducts(res.data);
+    try {
+      setLoadingProducts(true);
+      const res = await axios.get<Product[]>(API_URL_PRODUCTS);
+      setProducts(res.data);
+    } catch (err) {
+      console.error("Lỗi tải sản phẩm:", err);
+      alert("Không thể tải danh sách sản phẩm!");
+    } finally {
+      setLoadingProducts(false);
+    }
   };
 
   const fetchCategories = async () => {
-    const res = await axios.get<Category[]>(API_URL_CATEGORIES);
-    setCategories(res.data);
+    try {
+      setLoadingCategories(true);
+      const res = await axios.get<Category[]>(API_URL_CATEGORIES);
+      setCategories(res.data);
+    } catch (err) {
+      console.error("Lỗi tải danh mục:", err);
+      alert("Không thể tải danh mục!");
+    } finally {
+      setLoadingCategories(false);
+    }
   };
 
   const openModal = (product?: Product) => {
@@ -69,6 +89,12 @@ const ProductManagement: React.FC = () => {
       setForm({ category_ID: 0, product_name: "", price: "", number: "", product_image: null, import_date: "" });
     }
     setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingProduct(null);
+    setForm({ category_ID: 0, product_name: "", price: "", number: "", product_image: null, import_date: "" });
   };
 
   const handleDelete = async (id: number) => {
@@ -91,19 +117,23 @@ const ProductManagement: React.FC = () => {
     const formData = new FormData();
     formData.append("category_ID", form.category_ID.toString());
     formData.append("product_name", form.product_name);
-    formData.append("price", form.price === "" ? "0" : form.price);
-    formData.append("number", form.number === "" ? "0" : form.number);
+    formData.append("price", Number(form.price).toString());
+    formData.append("number", Number(form.number).toString());
     if (form.product_image) formData.append("product_image", form.product_image);
     formData.append("import_date", form.import_date || new Date().toISOString().split("T")[0]);
 
-    if (editingProduct) {
-      await axios.put(`${API_URL_PRODUCTS}/${editingProduct.product_ID}`, formData);
-    } else {
-      await axios.post(API_URL_PRODUCTS, formData);
+    try {
+      if (editingProduct) {
+        await axios.put(`${API_URL_PRODUCTS}/${editingProduct.product_ID}`, formData);
+      } else {
+        await axios.post(API_URL_PRODUCTS, formData);
+      }
+      closeModal();
+      fetchProducts();
+    } catch (err) {
+      console.error("Lỗi lưu sản phẩm:", err);
+      alert("Lưu sản phẩm thất bại!");
     }
-
-    setShowModal(false);
-    fetchProducts();
   };
 
   const filteredProducts = products.filter(
@@ -113,19 +143,13 @@ const ProductManagement: React.FC = () => {
   );
 
   const handleCheck = (id: number, checked: boolean) => {
-    if (checked) {
-      setSelectedProducts(prev => [...prev, id]);
-    } else {
-      setSelectedProducts(prev => prev.filter(x => x !== id));
-    }
+    if (checked) setSelectedProducts(prev => [...prev, id]);
+    else setSelectedProducts(prev => prev.filter(x => x !== id));
   };
 
   const handleCheckAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedProducts(filteredProducts.map(p => p.product_ID));
-    } else {
-      setSelectedProducts([]);
-    }
+    if (checked) setSelectedProducts(filteredProducts.map(p => p.product_ID));
+    else setSelectedProducts([]);
   };
 
   return (
@@ -172,46 +196,53 @@ const ProductManagement: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredProducts.map((p) => (
-              <tr key={p.product_ID} className="hover:bg-gray-50">
-                <td className="border px-2 py-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedProducts.includes(p.product_ID)}
-                    onChange={(e) => handleCheck(p.product_ID, e.target.checked)}
-                  />
-                </td>
-                <td className="border px-2 py-2">{p.product_ID}</td>
-                <td className="border">{p.category_name}</td>
-                <td className="border">{p.product_name}</td>
-                <td className="border">{p.price.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}</td>
-                <td className="border">{p.number}</td>
-                <td className="border">
-                  {p.number === 0 ? (
-                    <span className="text-red-600 font-bold">Hết hàng</span>
-                  ) : p.number <= 3 ? (
-                    <span className="text-orange-600 font-bold">Sắp hết</span>
-                  ) : (
-                    <span className="text-green-600">Còn hàng</span>
-                  )}
-                </td>
-                <td className="border">{p.import_date ? new Date(p.import_date).toLocaleDateString() : "-"}</td>
-                <td className="border">
-                  {p.product_image && <img src={`http://localhost:3000/${p.product_image}`} className="w-16 h-16 object-cover mx-auto" />}
-                </td>
-                <td className="border flex justify-center gap-2 py-2">
-                  <button className="bg-blue-500 text-white px-3 py-1 rounded" onClick={() => openModal(p)}>Sửa</button>
-                  <button className="bg-red-500 text-white px-3 py-1 rounded" onClick={() => handleDelete(p.product_ID)}>Xóa</button>
-                </td>
-              </tr>
-            ))}
-            {filteredProducts.length === 0 && <tr><td colSpan={10} className="py-4 text-gray-500">Không có dữ liệu</td></tr>}
+            {loadingProducts ? (
+              <tr><td colSpan={10} className="py-4">Đang tải dữ liệu...</td></tr>
+            ) : filteredProducts.length === 0 ? (
+              <tr><td colSpan={10} className="py-4 text-gray-500">Không có dữ liệu</td></tr>
+            ) : (
+              filteredProducts.map((p) => (
+                <tr key={p.product_ID} className="hover:bg-gray-50">
+                  <td className="border px-2 py-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedProducts.includes(p.product_ID)}
+                      onChange={(e) => handleCheck(p.product_ID, e.target.checked)}
+                    />
+                  </td>
+                  <td className="border px-2 py-2">{p.product_ID}</td>
+                  <td className="border">{p.category_name}</td>
+                  <td className="border">{p.product_name}</td>
+                  <td className="border">{p.price.toLocaleString("vi-VN", { style: "currency", currency: "VND" })}</td>
+                  <td className="border">{p.number}</td>
+                  <td className="border">
+                    {p.number === 0 ? (
+                      <span className="text-red-600 font-bold">Hết hàng</span>
+                    ) : p.number <= 3 ? (
+                      <span className="text-orange-600 font-bold">Sắp hết</span>
+                    ) : (
+                      <span className="text-green-600">Còn hàng</span>
+                    )}
+                  </td>
+                  <td className="border">{p.import_date ? new Date(p.import_date).toLocaleDateString() : "-"}</td>
+                  <td className="border">
+                    {p.product_image ? (
+                      <img src={`${API_URL}/${p.product_image}`} className="w-16 h-16 object-cover mx-auto" />
+                    ) : <span>Chưa có</span>}
+                  </td>
+                  <td className="border flex justify-center gap-2 py-2">
+                    <button className="bg-blue-500 text-white px-3 py-1 rounded" onClick={() => openModal(p)}>Sửa</button>
+                    <button className="bg-red-500 text-white px-3 py-1 rounded" onClick={() => handleDelete(p.product_ID)}>Xóa</button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded w-1/3">
             <h2 className="text-xl font-bold mb-4">{editingProduct ? "Sửa" : "Thêm"} sản phẩm</h2>
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -231,7 +262,7 @@ const ProductManagement: React.FC = () => {
               <input type="file" onChange={(e) => setForm({ ...form, product_image: e.target.files ? e.target.files[0] : null })} className="border px-3 py-2 rounded" />
 
               <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setShowModal(false)} className="border px-4 py-2 rounded">Hủy</button>
+                <button type="button" onClick={closeModal} className="border px-4 py-2 rounded">Hủy</button>
                 <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">Lưu</button>
               </div>
             </form>

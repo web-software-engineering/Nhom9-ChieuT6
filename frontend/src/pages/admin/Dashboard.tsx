@@ -22,10 +22,13 @@ interface User {
   role: string;
 }
 
+// ✅ Lấy API URL từ biến môi trường, fallback sang localhost
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 const Dashboard: React.FC = () => {
   const [revenue, setRevenue] = useState<number>(0);
   const [orders, setOrders] = useState<number>(0);
-  const [customersCount, setCustomersCount] = useState<number>(0); // chỉ đếm customer
+  const [customersCount, setCustomersCount] = useState<number>(0);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -38,34 +41,33 @@ const Dashboard: React.FC = () => {
 
         const [revRes, ordRes, userRes, topRes, reviewRes] = await Promise.all([
           axios
-            .get("http://localhost:3000/api/stats/revenue", { params: { filter: "day", start, end } })
+            .get(`${API_BASE}/api/stats/revenue`, { params: { filter: "day", start, end } })
             .catch(() => ({ data: [] })),
           axios
-            .get("http://localhost:3000/api/stats/orders", { params: { filter: "day", start, end } })
+            .get(`${API_BASE}/api/stats/orders`, { params: { filter: "day", start, end } })
             .catch(() => ({ data: [] })),
-          axios.get("http://localhost:3000/api/users").catch(() => ({ data: [] })),
-          axios.get("http://localhost:3000/api/stats/top-products").catch(() => ({ data: [] })),
-          axios.get("http://localhost:3000/api/reviews/all").catch(() => ({ data: [] })),
+          axios.get(`${API_BASE}/api/users`).catch(() => ({ data: [] })),
+          axios.get(`${API_BASE}/api/stats/top-products`).catch(() => ({ data: [] })),
+          axios.get(`${API_BASE}/api/reviews/all`).catch(() => ({ data: [] })),
         ]);
 
         const totalRevenue = Array.isArray(revRes.data)
-          ? revRes.data.reduce((sum: number, r: any) => sum + r.total, 0)
+          ? revRes.data.reduce((sum: number, r: any) => sum + (r.total || 0), 0)
           : 0;
         const totalOrders = Array.isArray(ordRes.data)
-          ? ordRes.data.reduce((sum: number, o: any) => sum + o.total_orders, 0)
+          ? ordRes.data.reduce((sum: number, o: any) => sum + (o.total_orders || 0), 0)
           : 0;
 
         setRevenue(totalRevenue);
         setOrders(totalOrders);
 
-        // Đếm số khách hàng
         const customers = Array.isArray(userRes.data)
           ? userRes.data.filter((u: User) => u.role === "customer").length
           : 0;
         setCustomersCount(customers);
 
-        setTopProducts(topRes.data);
-        setReviews(reviewRes.data);
+        setTopProducts(Array.isArray(topRes.data) ? topRes.data : []);
+        setReviews(Array.isArray(reviewRes.data) ? reviewRes.data : []);
       } catch (err) {
         console.error("Lỗi fetch dữ liệu:", err);
       } finally {
@@ -97,9 +99,11 @@ const Dashboard: React.FC = () => {
         <div className="bg-pink-100 p-4 rounded shadow text-center">
           <h3 className="text-sm font-semibold text-gray-700">Top sản phẩm</h3>
           <ul className="text-xs mt-2">
-            {topProducts.map((p, idx) => (
-              <li key={idx}>{p.product_name} ({p.sold})</li>
-            ))}
+            {topProducts.length > 0 ? (
+              topProducts.map((p, idx) => <li key={idx}>{p.product_name} ({p.sold})</li>)
+            ) : (
+              <li>Chưa có sản phẩm</li>
+            )}
           </ul>
         </div>
       </div>
