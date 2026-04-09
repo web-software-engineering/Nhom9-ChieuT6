@@ -38,14 +38,13 @@ const Stats: React.FC = () => {
   const [revenue, setRevenue] = useState<Revenue[]>([]);
   const [orders, setOrders] = useState<Orders[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
-  const [filterType, setFilterType] = useState<"day"|"month"|"year">("day");
+  const [filterType, setFilterType] = useState<"day" | "month" | "year">("day");
   const [startDate, setStartDate] = useState<Date | null>(new Date());
   const [endDate, setEndDate] = useState<Date | null>(new Date());
   const [loadingRevenue, setLoadingRevenue] = useState(false);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [loadingTop, setLoadingTop] = useState(false);
 
-  // Chuyển Date -> YYYY-MM-DD
   const formatDate = (date: Date) => {
     const yyyy = date.getFullYear();
     const mm = String(date.getMonth() + 1).padStart(2, "0");
@@ -55,13 +54,13 @@ const Stats: React.FC = () => {
 
   const getRange = (): [string, string] => {
     const now = startDate || new Date();
-    if(filterType === "day") return [formatDate(startDate || new Date()), formatDate(endDate || new Date())];
-    if(filterType === "month") {
+    if (filterType === "day")
+      return [formatDate(startDate || new Date()), formatDate(endDate || new Date())];
+    if (filterType === "month") {
       const start = new Date(now.getFullYear(), now.getMonth(), 1);
       const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       return [formatDate(start), formatDate(end)];
     }
-    // year
     const start = new Date(now.getFullYear(), 0, 1);
     const end = new Date(now.getFullYear(), 11, 31);
     return [formatDate(start), formatDate(end)];
@@ -116,16 +115,26 @@ const Stats: React.FC = () => {
 
         {filterType === "day" && (
           <div className="flex gap-2 items-center">
-            <DatePicker selected={startDate} onChange={date => setStartDate(date)} className="border rounded p-1" dateFormat="yyyy-MM-dd" />
+            <DatePicker
+              selected={startDate}
+              onChange={(date: Date | null) => setStartDate(date)}
+              className="border rounded p-1"
+              dateFormat="yyyy-MM-dd"
+            />
             <span>→</span>
-            <DatePicker selected={endDate} onChange={date => setEndDate(date)} className="border rounded p-1" dateFormat="yyyy-MM-dd" />
+            <DatePicker
+              selected={endDate}
+              onChange={(date: Date | null) => setEndDate(date)}
+              className="border rounded p-1"
+              dateFormat="yyyy-MM-dd"
+            />
           </div>
         )}
 
         {filterType === "month" && (
           <DatePicker
             selected={startDate}
-            onChange={date => setStartDate(date)}
+            onChange={(date: Date | null) => setStartDate(date)}
             className="border rounded p-1"
             dateFormat="MM/yyyy"
             showMonthYearPicker
@@ -136,7 +145,7 @@ const Stats: React.FC = () => {
           <input
             type="number"
             value={startDate?.getFullYear() ?? new Date().getFullYear()}
-            onChange={(e) => setStartDate(new Date(Number(e.target.value),0,1))}
+            onChange={(e) => setStartDate(new Date(Number(e.target.value), 0, 1))}
             className="border rounded p-1 w-24"
           />
         )}
@@ -167,33 +176,35 @@ const Stats: React.FC = () => {
         <div className="bg-white p-4 rounded shadow lg:col-span-2">
           <h2 className="text-lg font-semibold mb-2">Doanh thu theo {filterType}</h2>
           {loadingRevenue ? renderChartLoading() :
-          revenue.length ? (
-            <div className="h-64">
-              <Line
-                options={{ responsive: true, maintainAspectRatio: false }}
-                data={{
-                  labels: revenue.map(r => r.order_date),
-                  datasets: [{ label: `Doanh thu (đ)`, data: revenue.map(r => r.total), borderColor: "green", backgroundColor: "rgba(0,255,0,0.2)", fill: true, tension: 0.3 }],
-                }}
-              />
-            </div>
-          ) : renderChartLoading()}
+            revenue.length ? (
+              <div className="h-64">
+                <Line
+                  options={{ responsive: true, maintainAspectRatio: false }}
+                  data={{
+                    labels: revenue.map(r => r.order_date),
+                    datasets: [{ label: `Doanh thu (đ)`, data: revenue.map(r => r.total), borderColor: "green", backgroundColor: "rgba(0,255,0,0.2)", fill: true, tension: 0.3 }],
+                  }}
+                />
+              </div>
+            ) : renderChartLoading()
+          }
         </div>
 
         <div className="bg-white p-4 rounded shadow">
           <h2 className="text-lg font-semibold mb-2">Top sản phẩm bán chạy</h2>
           {loadingTop ? renderChartLoading() :
-          topProducts.length ? (
-            <div className="h-64 flex justify-center items-center">
-              <Doughnut
-                options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }}
-                data={{
-                  labels: topProducts.map(p => p.product_name),
-                  datasets: [{ label: "Số lượng bán", data: topProducts.map(p => p.sold), backgroundColor: doughnutColors, borderWidth: 1 }],
-                }}
-              />
-            </div>
-          ) : renderChartLoading()}
+            topProducts.length ? (
+              <div className="h-64 flex justify-center items-center">
+                <Doughnut
+                  options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }}
+                  data={{
+                    labels: topProducts.map(p => p.product_name),
+                    datasets: [{ label: "Số lượng bán", data: topProducts.map(p => p.sold), backgroundColor: doughnutColors, borderWidth: 1 }],
+                  }}
+                />
+              </div>
+            ) : renderChartLoading()
+          }
         </div>
       </div>
 
@@ -201,14 +212,15 @@ const Stats: React.FC = () => {
       <div className="bg-white p-4 rounded shadow">
         <h2 className="text-lg font-semibold mb-2">Số đơn hàng theo {filterType}</h2>
         {loadingOrders ? renderChartLoading() :
-        orders.length ? (
-          <div className="h-64">
-            <Bar
-              options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }}
-              data={{ labels: orders.map(o => o.order_date), datasets: [{ label: "Số đơn", data: orders.map(o => o.total_orders), backgroundColor: "#3b82f6", borderRadius: 4 }] }}
-            />
-          </div>
-        ) : renderChartLoading()}
+          orders.length ? (
+            <div className="h-64">
+              <Bar
+                options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }}
+                data={{ labels: orders.map(o => o.order_date), datasets: [{ label: "Số đơn", data: orders.map(o => o.total_orders), backgroundColor: "#3b82f6", borderRadius: 4 }] }}
+              />
+            </div>
+          ) : renderChartLoading()
+        }
       </div>
     </div>
   );
