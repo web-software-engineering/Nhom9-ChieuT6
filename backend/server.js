@@ -6,21 +6,18 @@ import jwt from "jsonwebtoken";
 import passport from "passport";
 import googleOAuth from "passport-google-oauth20";
 import facebookOAuth from "passport-facebook";
+import fs from "fs";
+import path from "path";
 import * as ghnService from "./services/ghnService.js";
 import db from "./services/db.js";
-<<<<<<< HEAD
 import categoryRoutes from "./routes/categoryRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import statsRoutes from "./routes/statsRoutes.js";
 import reviewsRoutes from "./routes/reviewRouters.js";
 import userRoutes from "./routes/userRoutes.js";
-=======
-
 const { Strategy: GoogleStrategy } = googleOAuth;
 const { Strategy: FacebookStrategy } = facebookOAuth;
-
->>>>>>> 53b5e2e (add login feature)
 const requiredEnvVars = ["GHN_API_URL", "GHN_TOKEN", "GHN_SHOP_ID"];
 const missingEnvVars = requiredEnvVars.filter((name) => !process.env[name]);
 
@@ -33,10 +30,6 @@ if (missingEnvVars.length > 0) {
 }
 
 const app = express();
-<<<<<<< HEAD
-import fs from "fs";
-import path from "path";
-=======
 const PORT = Number(process.env.PORT || 5000);
 const JWT_SECRET = process.env.JWT_SECRET || "dev-access-secret";
 const JWT_REFRESH_SECRET =
@@ -60,7 +53,6 @@ const googleOAuthEnabled = Boolean(
 const facebookOAuthEnabled = Boolean(
   FACEBOOK_CLIENT_ID && FACEBOOK_CLIENT_SECRET,
 );
->>>>>>> 53b5e2e (add login feature)
 
 // TỰ ĐỘNG TẠO FOLDER uploads
 const uploadDir = path.join("public", "uploads");
@@ -71,12 +63,8 @@ if (!fs.existsSync(uploadDir)) {
 }
 app.use(cors());
 app.use(express.json());
-<<<<<<< HEAD
-app.use("/uploads", express.static("public/uploads"));
-=======
 app.use(passport.initialize());
-
->>>>>>> 53b5e2e (add login feature)
+app.use("/uploads", express.static("public/uploads"));
 app.get("/", (req, res) => {
   res.json({ message: "Backend GHN running" });
 });
