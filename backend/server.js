@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import * as ghnService from "./services/ghnService.js";
+import db from "./services/db.js";
 
 const requiredEnvVars = ["GHN_API_URL", "GHN_TOKEN", "GHN_SHOP_ID"];
 const missingEnvVars = requiredEnvVars.filter((name) => !process.env[name]);
@@ -101,7 +102,9 @@ const buildCreateOrderInput = (body = {}) => {
   const weightInGram =
     body.weight !== undefined && body.weight !== null && body.weight !== ""
       ? body.weight
-      : body.weightKg !== undefined && body.weightKg !== null && body.weightKg !== ""
+      : body.weightKg !== undefined &&
+          body.weightKg !== null &&
+          body.weightKg !== ""
         ? Math.round(Number(body.weightKg) * 1000)
         : undefined;
 
@@ -168,7 +171,14 @@ app.get("/api/shipping/wards", async (req, res) => {
 // tính phí
 app.get("/api/shipping/fee", async (req, res) => {
   try {
-    const { fromDistrictId, toDistrictId, weightKg, lengthCm, widthCm, heightCm } = req.query;
+    const {
+      fromDistrictId,
+      toDistrictId,
+      weightKg,
+      lengthCm,
+      widthCm,
+      heightCm,
+    } = req.query;
 
     const missingQueryParams = [
       ["fromDistrictId", fromDistrictId],
@@ -193,7 +203,7 @@ app.get("/api/shipping/fee", async (req, res) => {
       weightKg,
       lengthCm,
       widthCm,
-      heightCm
+      heightCm,
     );
 
     res.json(data);
@@ -208,7 +218,10 @@ app.post("/api/shipping/create-order", async (req, res) => {
     const input = buildCreateOrderInput(req.body);
     const createdOrder = await ghnService.createShippingOrder(input);
 
-    shippingTrackingHistory.set(createdOrder.order_code, createInitialTrackingHistory());
+    shippingTrackingHistory.set(
+      createdOrder.order_code,
+      createInitialTrackingHistory(),
+    );
 
     res.status(201).json({
       orderCode: createdOrder.order_code,
@@ -224,9 +237,14 @@ app.post("/api/shipping/order", async (req, res) => {
     const input = buildCreateOrderInput(req.body);
     const createdOrder = await ghnService.createShippingOrder(input);
 
-    shippingTrackingHistory.set(createdOrder.order_code, createInitialTrackingHistory());
+    shippingTrackingHistory.set(
+      createdOrder.order_code,
+      createInitialTrackingHistory(),
+    );
 
-    res.status(201).json(buildLegacyOrderResponse(createdOrder, input, req.body || {}));
+    res
+      .status(201)
+      .json(buildLegacyOrderResponse(createdOrder, input, req.body || {}));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -258,4 +276,20 @@ const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);
+});
+
+app.get("/api/test-db", async (req, res) => {
+  try {
+    const [rows] = await db.query("SELECT 1 AS ok");
+
+    res.json({
+      message: "DB connected OK",
+      data: rows,
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "DB connection failed",
+      error: err.message,
+    });
+  }
 });
