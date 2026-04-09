@@ -1,107 +1,38 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import passport from "passport";
-import googleOAuth from "passport-google-oauth20";
-import facebookOAuth from "passport-facebook";
-import fs from "fs";
-import path from "path";
 import * as ghnService from "./services/ghnService.js";
+import * as momoService from "./services/momoService.js";
+import * as vnpayService from "./services/vnpayService.js";
 import db from "./services/db.js";
-import categoryRoutes from "./routes/categoryRoutes.js";
-import productRoutes from "./routes/productRoutes.js";
-import orderRoutes from "./routes/orderRoutes.js";
-import statsRoutes from "./routes/statsRoutes.js";
-import reviewsRoutes from "./routes/reviewRouters.js";
-import userRoutes from "./routes/userRoutes.js";
-const { Strategy: GoogleStrategy } = googleOAuth;
-const { Strategy: FacebookStrategy } = facebookOAuth;
+
 const requiredEnvVars = ["GHN_API_URL", "GHN_TOKEN", "GHN_SHOP_ID"];
 const missingEnvVars = requiredEnvVars.filter((name) => !process.env[name]);
 
 console.log("[ENV] GHN_API_URL:", process.env.GHN_API_URL || "(missing)");
 console.log("[ENV] GHN_SHOP_ID:", process.env.GHN_SHOP_ID || "(missing)");
 console.log("[ENV] GHN_TOKEN loaded:", Boolean(process.env.GHN_TOKEN));
+console.log("[ENV] MOMO_ENV:", process.env.MOMO_ENV || "(missing)");
+console.log("[ENV] MOMO_PARTNER_CODE:", process.env.MOMO_PARTNER_CODE || "(missing)");
+console.log("[ENV] MOMO_ACCESS_KEY loaded:", Boolean(process.env.MOMO_ACCESS_KEY));
+console.log("[ENV] MOMO_PARTNER_KEY loaded:", Boolean(process.env.MOMO_PARTNER_KEY));
 
 if (missingEnvVars.length > 0) {
   console.warn(`[ENV] Missing variables: ${missingEnvVars.join(", ")}`);
 }
 
 const app = express();
-const PORT = Number(process.env.PORT || 5000);
-const JWT_SECRET = process.env.JWT_SECRET || "dev-access-secret";
-const JWT_REFRESH_SECRET =
-  process.env.JWT_REFRESH_SECRET || "dev-refresh-secret";
-const BACKEND_URL =
-  (process.env.BACKEND_URL || process.env.RENDER_EXTERNAL_URL || "").replace(
-    /\/$/,
-    "",
-  ) || "https://nhom9-chieut6-backend.onrender.com";
-const FRONTEND_URL =
-  process.env.FRONTEND_URL || "https://nhom9-chieu-t6.vercel.app";
-const FRONTEND_LOGIN_URL = `${FRONTEND_URL}/login`;
-const readEnv = (...keys) => {
-  for (const key of keys) {
-    const raw = process.env[key];
-    if (raw === undefined || raw === null) continue;
 
-    const value = String(raw)
-      .trim()
-      .replace(/^['"]|['"]$/g, "");
-    if (value) return value;
-  }
+// Render / Nginx 等反向代理后 req.protocol 需为 https，否则 VNPay ReturnUrl 会错成 http
+app.set("trust proxy", 1);
 
-  return "";
-};
-
-const GOOGLE_CLIENT_ID = readEnv(
-  "GOOGLE_CLIENT_ID",
-  "GOOGLE_APP_ID",
-  "GOOGLE_ID",
-);
-const GOOGLE_CLIENT_SECRET = readEnv(
-  "GOOGLE_CLIENT_SECRET",
-  "GOOGLE_APP_SECRET",
-  "GOOGLE_SECRET",
-);
-const FACEBOOK_CLIENT_ID = readEnv(
-  "FACEBOOK_CLIENT_ID",
-  "FACEBOOK_APP_ID",
-  "FACEBOOK_ID",
-);
-const FACEBOOK_CLIENT_SECRET = readEnv(
-  "FACEBOOK_CLIENT_SECRET",
-  "FACEBOOK_APP_SECRET",
-  "FACEBOOK_SECRET",
-);
-
-const googleOAuthEnabled = Boolean(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
-const facebookOAuthEnabled = Boolean(
-  FACEBOOK_CLIENT_ID && FACEBOOK_CLIENT_SECRET,
-);
-
-// TỰ ĐỘNG TẠO FOLDER uploads
-const uploadDir = path.join("public", "uploads");
-
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  console.log("Đã tạo thư mục public/uploads");
-}
 app.use(cors());
 app.use(express.json());
-app.use(passport.initialize());
-app.use("/uploads", express.static("public/uploads"));
+
 app.get("/", (req, res) => {
   res.json({ message: "Backend GHN running" });
 });
-app.use("/api/categories", categoryRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/orders", orderRoutes);
-app.use("/api/stats", statsRoutes);
-app.use("/api/reviews", reviewsRoutes);
-app.use("/api/users", userRoutes);
+
 /* ================= USERS API ================= */
 
 let users = [
@@ -111,180 +42,6 @@ let users = [
 ];
 
 let nextUserId = 4;
-const seededPasswordHash = bcrypt.hashSync("123456", 10);
-let nextAuthUserId = 4;
-const authUsers = [
-  {
-    id: 1,
-    username: "admin01",
-    passwordHash: seededPasswordHash,
-    name: "Nguyễn Văn Admin",
-    contact_add: "0123456789",
-    address: "Hà Nội",
-    email: "admin01@example.com",
-    role: "admin",
-    otp: null,
-    otp_expire: null,
-    refreshToken: null,
-    refresh_token: null,
-    google_id: null,
-    facebook_id: null,
-  },
-  {
-    id: 2,
-    username: "seller01",
-    passwordHash: seededPasswordHash,
-    name: "Trần Thị Seller",
-    contact_add: "0987654321",
-    address: "Hồ Chí Minh",
-    email: "seller01@example.com",
-    role: "seller",
-    otp: null,
-    otp_expire: null,
-    refreshToken: null,
-    refresh_token: null,
-    google_id: null,
-    facebook_id: null,
-  },
-  {
-    id: 3,
-    username: "user01",
-    passwordHash: seededPasswordHash,
-    name: "Lê Văn Customer",
-    contact_add: "0911223344",
-    address: "Đà Nẵng",
-    email: "user01@example.com",
-    role: "customer",
-    otp: null,
-    otp_expire: null,
-    refreshToken: null,
-    refresh_token: null,
-    google_id: null,
-    facebook_id: null,
-  },
-];
-
-const normalizeText = (value) => String(value ?? "").trim();
-const normalizeEmail = (value) => normalizeText(value).toLowerCase();
-const normalizeUsername = (value) => normalizeText(value).toLowerCase();
-const normalizeRole = (value) => {
-  const role = normalizeText(value).toLowerCase();
-  return ["customer", "seller", "admin"].includes(role) ? role : "customer";
-};
-
-const createUniqueUsername = (value) => {
-  const baseName = normalizeUsername(value) || `user${nextAuthUserId}`;
-  let candidate = baseName;
-  let suffix = 1;
-
-  while (authUsers.some((user) => user.username === candidate)) {
-    candidate = `${baseName}_${suffix++}`;
-  }
-
-  return candidate;
-};
-
-const findAuthUserByEmail = (email) =>
-  authUsers.find((user) => user.email === normalizeEmail(email));
-
-const findAuthUserByUsername = (username) =>
-  authUsers.find((user) => user.username === normalizeUsername(username));
-
-const findAuthUserByProvider = (provider, providerId) =>
-  authUsers.find(
-    (user) => user.oauthProvider === provider && user.oauthId === providerId,
-  );
-
-const setRefreshToken = (user, token) => {
-  user.refreshToken = token;
-  user.refresh_token = token;
-};
-
-const serializeAuthUser = (user) => ({
-  id: user.id,
-  username: user.username || "",
-  name: user.name || "",
-  contact_add: user.contact_add || "",
-  address: user.address || "",
-  email: user.email || "",
-  role: user.role || "customer",
-  google_id: user.google_id || null,
-  facebook_id: user.facebook_id || null,
-});
-
-const upsertOAuthUser = ({ provider, providerId, email, name }) => {
-  const normalizedEmail = email ? normalizeEmail(email) : "";
-  const existingUser =
-    findAuthUserByProvider(provider, providerId) ||
-    (normalizedEmail ? findAuthUserByEmail(normalizedEmail) : null);
-
-  if (existingUser) {
-    existingUser.oauthProvider = provider;
-    existingUser.oauthId = providerId;
-    existingUser.name = normalizeText(name) || existingUser.name || "";
-    if (normalizedEmail && !existingUser.email) {
-      existingUser.email = normalizedEmail;
-    }
-    if (provider === "google") {
-      existingUser.google_id = providerId;
-    }
-    if (provider === "facebook") {
-      existingUser.facebook_id = providerId;
-    }
-    return existingUser;
-  }
-
-  const newUser = {
-    id: nextAuthUserId++,
-    username: createUniqueUsername(
-      normalizedEmail
-        ? normalizedEmail.split("@")[0]
-        : `${provider}_${providerId}`,
-    ),
-    email: normalizedEmail || `${provider}-${providerId}@oauth.local`,
-    passwordHash: null,
-    name: normalizeText(name) || `${provider} user`,
-    contact_add: "",
-    address: "",
-    role: "customer",
-    otp: null,
-    otp_expire: null,
-    refreshToken: null,
-    refresh_token: null,
-    oauthProvider: provider,
-    oauthId: providerId,
-    google_id: provider === "google" ? providerId : null,
-    facebook_id: provider === "facebook" ? providerId : null,
-  };
-
-  authUsers.push(newUser);
-  return newUser;
-};
-
-const authenticateAuthUser = (req, res, next) => {
-  const authHeader = req.headers.authorization || "";
-  const token = authHeader.startsWith("Bearer ")
-    ? authHeader.slice(7).trim()
-    : "";
-
-  if (!token) {
-    return res.status(401).json({ message: "Thiếu access token" });
-  }
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const user = authUsers.find((item) => item.id === decoded.id);
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    req.authUser = user;
-    next();
-  } catch (error) {
-    return res.status(401).json({ message: error.message });
-  }
-};
 
 const shippingTrackingHistory = new Map();
 
@@ -342,424 +99,6 @@ app.delete("/users/:id", (req, res) => {
   const id = Number(req.params.id);
   users = users.filter((u) => u.id !== id);
   res.json({ message: "User deleted" });
-});
-
-const createAuthTokens = (user) => ({
-  accessToken: jwt.sign(
-    {
-      id: user.id,
-      username: user.username,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
-    JWT_SECRET,
-    {
-      expiresIn: "15m",
-    },
-  ),
-  refreshToken: jwt.sign(
-    {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-    },
-    JWT_REFRESH_SECRET,
-    { expiresIn: "7d" },
-  ),
-});
-
-const buildAccessToken = (user) =>
-  jwt.sign(
-    {
-      id: user.id,
-      username: user.username,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
-    JWT_SECRET,
-    { expiresIn: "15m" },
-  );
-
-const sendOAuthSuccess = (res, user) => {
-  const tokens = createAuthTokens(user);
-  setRefreshToken(user, tokens.refreshToken);
-
-  const url = new URL(FRONTEND_LOGIN_URL);
-  url.searchParams.set("accessToken", tokens.accessToken);
-  url.searchParams.set("refreshToken", tokens.refreshToken);
-
-  return res.redirect(url.toString());
-};
-
-if (googleOAuthEnabled) {
-  passport.use(
-    new GoogleStrategy(
-      {
-        clientID: GOOGLE_CLIENT_ID,
-        clientSecret: GOOGLE_CLIENT_SECRET,
-        callbackURL:
-          process.env.GOOGLE_CALLBACK_URL ||
-          `${BACKEND_URL}/api/auth/google/callback`,
-      },
-      (accessToken, refreshToken, profile, done) => {
-        try {
-          const email = profile.emails?.[0]?.value || "";
-          const user = upsertOAuthUser({
-            provider: "google",
-            providerId: profile.id,
-            email,
-            name: profile.displayName || "Google User",
-          });
-
-          done(null, user);
-        } catch (error) {
-          done(error);
-        }
-      },
-    ),
-  );
-}
-
-if (facebookOAuthEnabled) {
-  passport.use(
-    new FacebookStrategy(
-      {
-        clientID: FACEBOOK_CLIENT_ID,
-        clientSecret: FACEBOOK_CLIENT_SECRET,
-        callbackURL:
-          process.env.FACEBOOK_CALLBACK_URL ||
-          `${BACKEND_URL}/api/auth/facebook/callback`,
-        profileFields: ["id", "displayName", "emails"],
-      },
-      (accessToken, refreshToken, profile, done) => {
-        try {
-          const email = profile.emails?.[0]?.value || "";
-          const user = upsertOAuthUser({
-            provider: "facebook",
-            providerId: profile.id,
-            email,
-            name: profile.displayName || "Facebook User",
-          });
-
-          done(null, user);
-        } catch (error) {
-          done(error);
-        }
-      },
-    ),
-  );
-}
-
-app.post("/api/auth/register", async (req, res) => {
-  try {
-    const {
-      username,
-      password,
-      name,
-      contact_add,
-      address,
-      email,
-      role,
-      google_id,
-      facebook_id,
-    } = req.body;
-
-    if (!username || !password || !name || !email) {
-      return res.status(400).json({
-        message: "Thiếu username, name, email hoặc password",
-      });
-    }
-
-    const normalizedUsername = normalizeUsername(username);
-    const normalizedEmail = normalizeEmail(email);
-    const existingUser = authUsers.find(
-      (user) =>
-        user.email === normalizedEmail || user.username === normalizedUsername,
-    );
-
-    if (existingUser) {
-      return res
-        .status(409)
-        .json({ message: "Username hoặc email đã tồn tại" });
-    }
-
-    const passwordHash = await bcrypt.hash(String(password), 10);
-    const newUser = {
-      id: nextAuthUserId++,
-      username: normalizedUsername,
-      email: normalizedEmail,
-      name: normalizeText(name),
-      contact_add: normalizeText(contact_add),
-      address: normalizeText(address),
-      role: normalizeRole(role),
-      passwordHash,
-      otp: null,
-      otp_expire: null,
-      refreshToken: null,
-      refresh_token: null,
-      google_id: normalizeText(google_id) || null,
-      facebook_id: normalizeText(facebook_id) || null,
-    };
-
-    authUsers.push(newUser);
-
-    return res.status(201).json({
-      message: "Đăng ký thành công",
-      user: serializeAuthUser(newUser),
-    });
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
-});
-
-app.post("/api/auth/login", async (req, res) => {
-  try {
-    const { identifier, email, username, password } = req.body;
-
-    if (!password || !(identifier || email || username)) {
-      return res
-        .status(400)
-        .json({ message: "Thiếu username/email hoặc password" });
-    }
-
-    const loginValue = normalizeText(
-      identifier || email || username,
-    ).toLowerCase();
-    const user =
-      findAuthUserByEmail(loginValue) || findAuthUserByUsername(loginValue);
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (!user.passwordHash) {
-      return res.status(400).json({
-        message:
-          "Tài khoản này dùng đăng nhập OAuth, hãy đăng nhập bằng Google/Facebook",
-      });
-    }
-
-    const isPasswordValid = await bcrypt.compare(
-      String(password),
-      user.passwordHash,
-    );
-
-    if (!isPasswordValid) {
-      return res.status(400).json({ message: "Wrong password" });
-    }
-
-    const tokens = createAuthTokens(user);
-    setRefreshToken(user, tokens.refreshToken);
-
-    return res.json({
-      ...tokens,
-      user: serializeAuthUser(user),
-    });
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
-});
-
-app.get("/api/auth/me", authenticateAuthUser, (req, res) => {
-  return res.json({ user: serializeAuthUser(req.authUser) });
-});
-
-app.put("/api/auth/me", authenticateAuthUser, (req, res) => {
-  const { username, name, contact_add, address, email } = req.body;
-
-  const user = req.authUser;
-
-  if (username !== undefined) {
-    const normalizedUsername = normalizeUsername(username);
-
-    if (!normalizedUsername) {
-      return res.status(400).json({ message: "Username is required" });
-    }
-
-    const duplicateUsername = authUsers.find(
-      (item) => item.username === normalizedUsername && item.id !== user.id,
-    );
-
-    if (duplicateUsername) {
-      return res.status(409).json({ message: "Username đã tồn tại" });
-    }
-
-    user.username = normalizedUsername;
-  }
-
-  if (name !== undefined) {
-    const nextName = normalizeText(name);
-    if (!nextName) {
-      return res.status(400).json({ message: "Name is required" });
-    }
-    user.name = nextName;
-  }
-
-  if (contact_add !== undefined) {
-    user.contact_add = normalizeText(contact_add);
-  }
-
-  if (address !== undefined) {
-    user.address = normalizeText(address);
-  }
-
-  if (email !== undefined) {
-    const normalizedEmail = normalizeEmail(email);
-
-    if (!normalizedEmail) {
-      return res.status(400).json({ message: "Email is required" });
-    }
-
-    const duplicateEmail = authUsers.find(
-      (item) => item.email === normalizedEmail && item.id !== user.id,
-    );
-
-    if (duplicateEmail) {
-      return res.status(409).json({ message: "Email đã tồn tại" });
-    }
-
-    user.email = normalizedEmail;
-  }
-
-  return res.json({
-    message: "Profile updated",
-    user: serializeAuthUser(user),
-  });
-});
-
-app.post("/api/auth/refresh", async (req, res) => {
-  try {
-    const { token } = req.body;
-
-    if (!token) {
-      return res.status(400).json({ message: "Thiếu refresh token" });
-    }
-
-    const decoded = jwt.verify(token, JWT_REFRESH_SECRET);
-    const user = authUsers.find((item) => item.id === decoded.id);
-
-    if (
-      !user ||
-      (user.refreshToken !== token && user.refresh_token !== token)
-    ) {
-      return res.status(403).json({ message: "Invalid token" });
-    }
-
-    const accessToken = buildAccessToken(user);
-
-    return res.json({ accessToken });
-  } catch (error) {
-    return res.status(401).json({ message: error.message });
-  }
-});
-
-app.post("/api/auth/forgot", (req, res) => {
-  const { email } = req.body;
-
-  if (!email) {
-    return res.status(400).json({ message: "Thiếu email" });
-  }
-
-  const user = authUsers.find(
-    (item) => item.email === String(email).trim().toLowerCase(),
-  );
-
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
-  }
-
-  return res.json({ message: "OTP sent" });
-});
-
-app.post("/api/auth/reset", (req, res) => {
-  const { email, newPassword } = req.body;
-
-  if (!email || !newPassword) {
-    return res.status(400).json({ message: "Thiếu dữ liệu" });
-  }
-
-  const user = authUsers.find(
-    (item) => item.email === String(email).trim().toLowerCase(),
-  );
-
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
-  }
-
-  user.passwordHash = bcrypt.hashSync(String(newPassword), 10);
-  user.refreshToken = null;
-  user.refresh_token = null;
-
-  return res.json({ message: "Password updated" });
-});
-
-app.get("/api/auth/google", (req, res, next) => {
-  if (!googleOAuthEnabled) {
-    return res.status(503).json({
-      message:
-        "Google OAuth is not configured. Set GOOGLE_CLIENT_ID/GOOGLE_APP_ID and GOOGLE_CLIENT_SECRET/GOOGLE_APP_SECRET.",
-    });
-  }
-
-  return passport.authenticate("google", {
-    scope: ["profile", "email"],
-    session: false,
-  })(req, res, next);
-});
-
-app.get("/api/auth/google/callback", (req, res, next) => {
-  if (!googleOAuthEnabled) {
-    return res.status(503).json({
-      message:
-        "Google OAuth is not configured. Set GOOGLE_CLIENT_ID/GOOGLE_APP_ID and GOOGLE_CLIENT_SECRET/GOOGLE_APP_SECRET.",
-    });
-  }
-
-  return passport.authenticate("google", { session: false }, (error, user) => {
-    if (error || !user) {
-      return res.redirect(`${FRONTEND_LOGIN_URL}?oauthError=google`);
-    }
-
-    return sendOAuthSuccess(res, user);
-  })(req, res, next);
-});
-
-app.get("/api/auth/facebook", (req, res, next) => {
-  if (!facebookOAuthEnabled) {
-    return res.status(503).json({
-      message:
-        "Facebook OAuth is not configured. Set FACEBOOK_CLIENT_ID/FACEBOOK_APP_ID and FACEBOOK_CLIENT_SECRET/FACEBOOK_APP_SECRET.",
-    });
-  }
-
-  return passport.authenticate("facebook", {
-    scope: ["public_profile"],
-    session: false,
-  })(req, res, next);
-});
-
-app.get("/api/auth/facebook/callback", (req, res, next) => {
-  if (!facebookOAuthEnabled) {
-    return res.status(503).json({
-      message:
-        "Facebook OAuth is not configured. Set FACEBOOK_CLIENT_ID/FACEBOOK_APP_ID and FACEBOOK_CLIENT_SECRET/FACEBOOK_APP_SECRET.",
-    });
-  }
-
-  return passport.authenticate(
-    "facebook",
-    { session: false },
-    (error, user) => {
-      if (error || !user) {
-        return res.redirect(`${FRONTEND_LOGIN_URL}?oauthError=facebook`);
-      }
-
-      return sendOAuthSuccess(res, user);
-    },
-  )(req, res, next);
 });
 
 const buildCreateOrderInput = (body = {}) => {
@@ -936,6 +275,405 @@ app.get("/api/shipping/tracking", async (req, res) => {
   }
 });
 
+/* ================= VNPAY PAYMENT API ================= */
+
+// Tạo URL thanh toán VNPay
+app.post("/api/vnpay/create-url", async (req, res) => {
+  try {
+    const { amount, orderId, orderInfo } = req.body;
+
+    if (!amount || !orderId) {
+      return res.status(400).json({
+        success: false,
+        message: "amount và orderId là bắt buộc",
+      });
+    }
+
+    // ReturnUrl: ưu tiên biến môi trường (bắt buộc khớp URL đã khai báo với VNPay)
+    const protocol = req.protocol;
+    const host = req.get("host") || process.env.BASE_URL?.replace(/^https?:\/\//, "");
+    const returnUrl =
+      process.env.VNPAY_RETURN_URL?.trim() ||
+      `${protocol}://${host}/api/vnpay/return`;
+
+    const result = await vnpayService.createVNPayUrl({
+      orderId,
+      amount: Number(amount),
+      orderInfo: orderInfo || `Thanh toan don hang ${orderId}`,
+      returnUrl,
+      ipAddr: vnpayService.getClientIp(req) || "127.0.0.1",
+    });
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+// Return URL — VNPay chuyển hướng về sau thanh toán
+app.get("/api/vnpay/return", (req, res) => {
+  const { vnp_ResponseCode, vnp_TransactionStatus, vnp_TxnRef, vnp_Amount } = req.query;
+
+  if (vnp_ResponseCode === "00" || vnp_TransactionStatus === "00") {
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Thanh toán thành công</title>
+          <style>
+            body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f0fdf4; }
+            .card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); text-align: center; max-width: 400px; }
+            .icon { font-size: 64px; color: #10b981; }
+            h2 { color: #065f46; margin: 16px 0 8px; }
+            p { color: #6b7280; margin: 8px 0; }
+            .btn { display: inline-block; margin-top: 20px; padding: 12px 24px; background: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="icon">✅</div>
+            <h2>Thanh toán VNPay thành công!</h2>
+            <p>Mã đơn hàng: <strong>${vnp_TxnRef || ""}</strong></p>
+            <p>Cảm ơn bạn đã sử dụng dịch vụ VNPay.</p>
+            <a href="/" class="btn">Quay về trang chủ</a>
+          </div>
+        </body>
+      </html>
+    `);
+  } else {
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Thanh toán thất bại</title>
+          <style>
+            body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #fef2f2; }
+            .card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); text-align: center; max-width: 400px; }
+            .icon { font-size: 64px; color: #ef4444; }
+            h2 { color: #991b1b; margin: 16px 0 8px; }
+            p { color: #6b7280; margin: 8px 0; }
+            .btn { display: inline-block; margin-top: 20px; padding: 12px 24px; background: #ef4444; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="icon">❌</div>
+            <h2>Thanh toán VNPay thất bại</h2>
+            <p>Mã đơn hàng: <strong>${vnp_TxnRef || ""}</strong></p>
+            <p>Mã lỗi: <strong>${vnp_ResponseCode || "?"}</strong></p>
+            <p>Vui lòng thử lại hoặc chọn phương thức khác.</p>
+            <a href="/" class="btn">Quay về trang chủ</a>
+          </div>
+        </body>
+      </html>
+    `);
+  }
+});
+
+// IPN URL — VNPay gọi server để cập nhật kết quả (server-to-server)
+app.get("/api/vnpay/ipn", async (req, res) => {
+  try {
+    const query = req.query;
+
+    // Verify signature
+    const isValidSignature = vnpayService.verifyVNPaySignature(
+      query,
+      process.env.VNPAY_HASH_SECRET || ""
+    );
+
+    if (!isValidSignature) {
+      console.error("[VNPay IPN] Chữ ký không hợp lệ:", query);
+      return res.status(200).json({ RspCode: "97", Message: "Invalid signature" });
+    }
+
+    const { vnp_ResponseCode, vnp_TransactionStatus, vnp_TxnRef, vnp_Amount } = query;
+
+    console.log("[VNPay IPN] Kết quả:", { orderId: vnp_TxnRef, responseCode: vnp_ResponseCode, status: vnp_TransactionStatus });
+
+    if (vnp_ResponseCode === "00" && vnp_TransactionStatus === "00") {
+      // Thanh toán thành công — lưu vào DB
+      try {
+        const [existing] = await db.query(
+          "SELECT payment_ID FROM Payment WHERE vnpay_txn_ref = ?",
+          [vnp_TxnRef]
+        );
+
+        if (Array.isArray(existing) && existing.length === 0) {
+          await db.query(
+            `INSERT INTO Payment (order_ID, date, payment_method, payment_status, vnpay_txn_ref, vnpay_amount, vnpay_response_code)
+             VALUES (?, CURDATE(), 'vnpay', 'success', ?, ?, ?, ?)`,
+            [
+              vnp_TxnRef || null,
+              vnp_TxnRef,
+              vnp_Amount ? Number(vnp_Amount) / 100 : 0,
+              vnp_ResponseCode,
+            ]
+          );
+          console.log("[VNPay IPN] Đã lưu thanh toán:", vnp_TxnRef);
+        }
+      } catch (dbError) {
+        console.error("[VNPay IPN] Lỗi lưu DB:", dbError.message);
+      }
+
+      return res.status(200).json({ RspCode: "00", Message: "Confirm Success" });
+    } else {
+      return res.status(200).json({ RspCode: "00", Message: "Confirm Success" });
+    }
+  } catch (error) {
+    console.error("[VNPay IPN] Lỗi xử lý:", error.message);
+    res.status(200).json({ RspCode: "99", Message: "Unknown error" });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+
+/* ================= MOMO PAYMENT API ================= */
+
+// Tạo mã thanh toán MoMo QR
+app.post("/api/momo/create", async (req, res) => {
+  try {
+    const {
+      amount,
+      orderId,
+      orderInfo,
+      redirectUrl,
+      ipnUrl,
+      customerName,
+      customerPhone,
+      customerEmail,
+    } = req.body;
+
+    if (!amount || !orderId) {
+      return res.status(400).json({
+        success: false,
+        message: "amount và orderId là bắt buộc",
+      });
+    }
+
+    const result = await momoService.createMoMoPayment({
+      amount: Number(amount),
+      orderId,
+      orderInfo: orderInfo || `Thanh toan don hang ${orderId}`,
+      redirectUrl: redirectUrl || "",
+      ipnUrl: ipnUrl || "",
+      customerName: customerName || "",
+      customerPhone: customerPhone || "",
+      customerEmail: customerEmail || "",
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        requestId: result.requestId,
+        orderId,
+        amount: Number(amount),
+        payUrl: result.payUrl,
+        qrCodeUrl: result.qrCodeUrl,
+        deepLink: result.deepLink,
+        deeplinkWeb: result.deeplinkWeb,
+        deeplinkApp: result.deeplinkApp,
+        isMock: Boolean(result.isMock),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+// Tạo mã QR cố định (cho test/demo)
+app.post("/api/momo/create-qr", async (req, res) => {
+  try {
+    const { amount, orderId, orderInfo } = req.body;
+
+    if (!amount || !orderId) {
+      return res.status(400).json({
+        success: false,
+        message: "amount và orderId là bắt buộc",
+      });
+    }
+
+    const result = await momoService.createMoMoQRCode({
+      amount: Number(amount),
+      orderId,
+      orderInfo: orderInfo || `Thanh toan don hang ${orderId}`,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        requestId: result.requestId,
+        orderId,           // echo lại orderId nội bộ
+        amount: Number(amount),
+        payUrl: result.payUrl,
+        qrCodeUrl: result.qrCodeUrl,
+        deepLink: result.deepLink,
+        deeplinkWeb: result.deeplinkWeb,
+        deeplinkApp: result.deeplinkApp,
+        isMock: Boolean(result.isMock),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+// Webhook / IPN từ MoMo (server gọi về khi thanh toán thành công)
+app.post("/api/momo/ipn", async (req, res) => {
+  try {
+    const body = req.body;
+
+    // Xác minh chữ ký MoMo
+    const rawSignatureData = momoService.buildRawSignatureFromWebhook(body);
+    const isValidSignature = momoService.verifyMoMoSignature(
+      rawSignatureData,
+      body.signature || ""
+    );
+
+    if (!isValidSignature) {
+      console.error("[MoMo IPN] Chữ ký không hợp lệ:", body);
+      return res.status(400).json({ success: false, message: "Invalid signature" });
+    }
+
+    console.log("[MoMo IPN] Thanh toán thành công:", {
+      orderId: body.orderId,
+      amount: body.amount,
+      transId: body.transId,
+      resultCode: body.resultCode,
+    });
+
+    // Lưu payment vào database
+    if (body.resultCode === 0) {
+      try {
+        const [existingPayment] = await db.query(
+          "SELECT payment_ID FROM Payment WHERE momo_order_id = ?",
+          [body.orderId]
+        );
+
+        if (Array.isArray(existingPayment) && existingPayment.length === 0) {
+          await db.query(
+            `INSERT INTO Payment (order_ID, date, payment_method, payment_status, momo_order_id, momo_transaction_id, momo_amount, momo_result_code)
+             VALUES (?, CURDATE(), 'momo', 'success', ?, ?, ?, ?)`,
+            [
+              body.orderId || null,
+              body.orderId,
+              body.transId,
+              body.amount,
+              body.resultCode,
+            ]
+          );
+          console.log("[MoMo IPN] Đã lưu thanh toán vào DB:", body.orderId);
+        }
+      } catch (dbError) {
+        console.error("[MoMo IPN] Lỗi lưu DB:", dbError.message);
+      }
+    }
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("[MoMo IPN] Lỗi xử lý:", error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Callback từ MoMo (trình duyệt chuyển hướng về sau khi thanh toán)
+app.get("/api/momo/callback", (req, res) => {
+  const { resultCode, orderId } = req.query;
+
+  if (resultCode === "0") {
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Thanh toán thành công</title>
+          <style>
+            body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f0fdf4; }
+            .card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); text-align: center; max-width: 400px; }
+            .icon { font-size: 64px; color: #10b981; }
+            h2 { color: #065f46; margin: 16px 0 8px; }
+            p { color: #6b7280; margin: 8px 0; }
+            .btn { display: inline-block; margin-top: 20px; padding: 12px 24px; background: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="icon">✅</div>
+            <h2>Thanh toán thành công!</h2>
+            <p>Mã đơn hàng: <strong>${orderId || ""}</strong></p>
+            <p>Cảm ơn bạn đã sử dụng dịch vụ MoMo.</p>
+            <a href="/" class="btn">Quay về trang chủ</a>
+          </div>
+        </body>
+      </html>
+    `);
+  } else {
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Thanh toán thất bại</title>
+          <style>
+            body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #fef2f2; }
+            .card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); text-align: center; max-width: 400px; }
+            .icon { font-size: 64px; color: #ef4444; }
+            h2 { color: #991b1b; margin: 16px 0 8px; }
+            p { color: #6b7280; margin: 8px 0; }
+            .btn { display: inline-block; margin-top: 20px; padding: 12px 24px; background: #ef4444; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="icon">❌</div>
+            <h2>Thanh toán thất bại</h2>
+            <p>Mã đơn hàng: <strong>${orderId || ""}</strong></p>
+            <p>Vui lòng thử lại hoặc chọn phương thức khác.</p>
+            <a href="/" class="btn">Quay về trang chủ</a>
+          </div>
+        </body>
+      </html>
+    `);
+  }
+});
+
+// Kiểm tra trạng thái thanh toán MoMo
+app.get("/api/momo/status", async (req, res) => {
+  try {
+    const { orderId } = req.query;
+
+    if (!orderId) {
+      return res.status(400).json({ success: false, message: "orderId là bắt buộc" });
+    }
+
+    const result = await momoService.getMoMoTransactionStatus(orderId);
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log("Server running on port", PORT);
+});
+
 app.get("/api/test-db", async (req, res) => {
   try {
     const [rows] = await db.query("SELECT 1 AS ok");
@@ -950,8 +688,4 @@ app.get("/api/test-db", async (req, res) => {
       error: err.message,
     });
   }
-});
-// chạy server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
 });

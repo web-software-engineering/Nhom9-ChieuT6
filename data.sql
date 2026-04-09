@@ -1,4 +1,5 @@
-﻿
+CREATE DATABASE OnlineShoppingSystem;
+GO
 USE OnlineShoppingSystem;
 GO
 
@@ -45,6 +46,15 @@ CREATE TABLE Payment (
     payment_ID INT PRIMARY KEY IDENTITY(1,1),
     order_ID INT,
     date DATE,
+    payment_method NVARCHAR(50) DEFAULT 'cod',  -- 'cod', 'momo', 'vnpay', etc.
+    payment_status NVARCHAR(50) DEFAULT 'pending',  -- 'pending', 'success', 'failed'
+    momo_order_id NVARCHAR(100),
+    momo_transaction_id NVARCHAR(100),
+    momo_amount DECIMAL(18, 2),
+    momo_result_code INT,
+    vnpay_txn_ref NVARCHAR(100),
+    vnpay_amount DECIMAL(18, 2),
+    vnpay_response_code NVARCHAR(10),
     FOREIGN KEY (order_ID) REFERENCES ShoppingOrder(order_ID)
 );
 

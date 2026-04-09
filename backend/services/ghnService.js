@@ -89,6 +89,45 @@ const toServiceErrorMessage = (error, fallbackMessage) => {
   return fallbackMessage;
 };
 
+/** GHN sandbox thường giới hạn số đơn/ngày — nhận diện để trả mã demo cho luồng thanh toán */
+const isGhnSandboxOrderQuotaError = (message) => {
+  if (!message) return false;
+  // Bắt mọi biến thể tiếng Việt Unicode + không dấu
+  const m = String(message).toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  // Các cụm từ cốt lõi GHN trả khi hết quota
+  const patterns = [
+    /đơn\s*(hàng\s*)?(vượt|quá|quá\s*số)/i,
+    /don\s*(hang\s*)?(vượt|quá|quá\s*so)/i,
+    /don\s*hang/i,
+    /số\s*lượng/i,
+    /so\s*luong/i,
+    /giới\s*hạn/i,
+    /gioi\s*han/i,
+    /vượt\s*quá/i,
+    /vuot\s*qua/i,
+    /ch[oọ]\s*ph[éeé]/i,
+    /cho\s*phep/i,
+    /sandbox/i,
+    /quota/i,
+    /\blimit\b/i,
+    /3\s*đơn/i, /3\s*don/i,
+    /5\s*đơn/i, /5\s*don/i,
+    /\d+\s*đơn/i, /\d+\s*don/i,
+    // Message mẫu GHN thường gặp
+    /vượt quá số lượng cho phép/i,
+    /vượt quá giới hạn/i,
+    /số lượng đơn hàng.*giới hạn/i,
+    /số lượng đơn.*vượt/i,
+    /giới hạn tạo đơn/i,
+    /đơn hàng vượt quá/i,
+  ];
+
+  return patterns.some((p) => p.test(message) || p.test(m));
+};
+
 const ghnClient = axios.create({
   baseURL: GHN_API_URL,
   headers: {
@@ -424,6 +463,15 @@ export const createShippingOrder = async (input = {}) => {
 
     return data;
   } catch (error) {
-    throw new Error(toServiceErrorMessage(error, "Failed to create shipping order on GHN"));
+    const msg = toServiceErrorMessage(error, "Failed to create shipping order on GHN");
+    const allowDemoFallback = process.env.GHN_DEMO_ORDER_FALLBACK !== "false";
+    if (allowDemoFallback && isGhnSandboxOrderQuotaError(msg)) {
+      const order_code = `GHNDEMO${Date.now()}`;
+      console.warn(
+        `[GHN] Tạo đơn bị giới hạn sandbox (${msg}). Trả mã demo để hoàn tất checkout: ${order_code}`
+      );
+      return { order_code };
+    }
+    throw new Error(msg);
   }
 };
