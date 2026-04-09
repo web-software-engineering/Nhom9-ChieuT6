@@ -42,18 +42,42 @@ const BACKEND_URL =
 const FRONTEND_URL =
   process.env.FRONTEND_URL || "https://nhom9-chieu-t6.vercel.app";
 const FRONTEND_LOGIN_URL = `${FRONTEND_URL}/login`;
-const GOOGLE_CLIENT_ID =
-  process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_APP_ID;
-const GOOGLE_CLIENT_SECRET =
-  process.env.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_APP_SECRET;
-const FACEBOOK_CLIENT_ID =
-  process.env.FACEBOOK_CLIENT_ID || process.env.FACEBOOK_APP_ID;
-const FACEBOOK_CLIENT_SECRET =
-  process.env.FACEBOOK_CLIENT_SECRET || process.env.FACEBOOK_APP_SECRET;
+const readEnv = (...keys) => {
+  for (const key of keys) {
+    const raw = process.env[key];
+    if (raw === undefined || raw === null) continue;
 
-const googleOAuthEnabled = Boolean(
-  GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET,
+    const value = String(raw)
+      .trim()
+      .replace(/^['"]|['"]$/g, "");
+    if (value) return value;
+  }
+
+  return "";
+};
+
+const GOOGLE_CLIENT_ID = readEnv(
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_APP_ID",
+  "GOOGLE_ID",
 );
+const GOOGLE_CLIENT_SECRET = readEnv(
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_APP_SECRET",
+  "GOOGLE_SECRET",
+);
+const FACEBOOK_CLIENT_ID = readEnv(
+  "FACEBOOK_CLIENT_ID",
+  "FACEBOOK_APP_ID",
+  "FACEBOOK_ID",
+);
+const FACEBOOK_CLIENT_SECRET = readEnv(
+  "FACEBOOK_CLIENT_SECRET",
+  "FACEBOOK_APP_SECRET",
+  "FACEBOOK_SECRET",
+);
+
+const googleOAuthEnabled = Boolean(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
 const facebookOAuthEnabled = Boolean(
   FACEBOOK_CLIENT_ID && FACEBOOK_CLIENT_SECRET,
 );
