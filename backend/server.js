@@ -42,13 +42,17 @@ const BACKEND_URL =
 const FRONTEND_URL =
   process.env.FRONTEND_URL || "https://nhom9-chieu-t6.vercel.app";
 const FRONTEND_LOGIN_URL = `${FRONTEND_URL}/login`;
+const GOOGLE_CLIENT_ID =
+  process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_APP_ID;
+const GOOGLE_CLIENT_SECRET =
+  process.env.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_APP_SECRET;
 const FACEBOOK_CLIENT_ID =
   process.env.FACEBOOK_CLIENT_ID || process.env.FACEBOOK_APP_ID;
 const FACEBOOK_CLIENT_SECRET =
   process.env.FACEBOOK_CLIENT_SECRET || process.env.FACEBOOK_APP_SECRET;
 
 const googleOAuthEnabled = Boolean(
-  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
+  GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET,
 );
 const facebookOAuthEnabled = Boolean(
   FACEBOOK_CLIENT_ID && FACEBOOK_CLIENT_SECRET,
@@ -370,8 +374,8 @@ if (googleOAuthEnabled) {
   passport.use(
     new GoogleStrategy(
       {
-        clientID: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        clientID: GOOGLE_CLIENT_ID,
+        clientSecret: GOOGLE_CLIENT_SECRET,
         callbackURL:
           process.env.GOOGLE_CALLBACK_URL ||
           `${BACKEND_URL}/api/auth/google/callback`,
@@ -672,7 +676,7 @@ app.get("/api/auth/google", (req, res, next) => {
   if (!googleOAuthEnabled) {
     return res.status(503).json({
       message:
-        "Google OAuth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
+        "Google OAuth is not configured. Set GOOGLE_CLIENT_ID/GOOGLE_APP_ID and GOOGLE_CLIENT_SECRET/GOOGLE_APP_SECRET.",
     });
   }
 
@@ -686,7 +690,7 @@ app.get("/api/auth/google/callback", (req, res, next) => {
   if (!googleOAuthEnabled) {
     return res.status(503).json({
       message:
-        "Google OAuth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
+        "Google OAuth is not configured. Set GOOGLE_CLIENT_ID/GOOGLE_APP_ID and GOOGLE_CLIENT_SECRET/GOOGLE_APP_SECRET.",
     });
   }
 
