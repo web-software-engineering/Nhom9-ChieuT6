@@ -24,7 +24,7 @@ const providerConfig = {
     clientSecretEnv: "FACEBOOK_CLIENT_SECRET",
     callbackUrlEnv: "FACEBOOK_CALLBACK_URL",
     providerAuthBase: "https://www.facebook.com/v20.0/dialog/oauth",
-    defaultScopes: ["email", "public_profile"],
+    defaultScopes: ["public_profile"],
   },
 };
 
