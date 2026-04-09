@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import { getAllProducts, addProduct, updateProduct, deleteProduct } from "../controllers/productController.js";
+import { deliverOrder } from "../controllers/ordersController.js"; // <- thêm
 
 const router = express.Router();
 
@@ -15,5 +16,8 @@ router.get("/", getAllProducts);
 router.post("/", upload.single("product_image"), addProduct);
 router.put("/:id", upload.single("product_image"), updateProduct);
 router.delete("/:id", deleteProduct);
+
+// Route giao hàng
+router.post("/:id/deliver", deliverOrder);
 
 export default router;

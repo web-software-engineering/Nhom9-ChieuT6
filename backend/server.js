@@ -5,7 +5,10 @@ import * as ghnService from "./services/ghnService.js";
 import db from "./services/db.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
-
+import orderRoutes from "./routes/orderRoutes.js";
+import statsRoutes from "./routes/statsRoutes.js";
+import reviewsRoutes from "./routes/reviewRouters.js";
+import userRoutes from "./routes/userRoutes.js";
 const requiredEnvVars = ["GHN_API_URL", "GHN_TOKEN", "GHN_SHOP_ID"];
 const missingEnvVars = requiredEnvVars.filter((name) => !process.env[name]);
 
@@ -36,6 +39,10 @@ app.get("/", (req, res) => {
 });
 app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/stats", statsRoutes);
+app.use("/api/reviews", reviewsRoutes);
+app.use("/api/users", userRoutes);
 /* ================= USERS API ================= */
 
 let users = [
