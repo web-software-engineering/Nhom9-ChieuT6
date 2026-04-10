@@ -6,6 +6,12 @@ import * as momoService from "./services/momoService.js";
 import * as vnpayService from "./services/vnpayService.js";
 import db from "./services/db.js";
 import authRoutes from "./routes/authRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
+import categoryRoutes from "./routes/categoryRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
+import statsRoutes from "./routes/statsRoutes.js";
+import reviewRoutes from "./routes/reviewRouters.js";
 
 const requiredEnvVars = ["GHN_API_URL", "GHN_TOKEN", "GHN_SHOP_ID"];
 const missingEnvVars = requiredEnvVars.filter((name) => !process.env[name]);
@@ -39,6 +45,12 @@ app.set("trust proxy", 1);
 app.use(cors());
 app.use(express.json());
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/stats", statsRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "Backend GHN running" });

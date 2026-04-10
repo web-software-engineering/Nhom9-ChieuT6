@@ -1,6 +1,7 @@
 import express from "express";
 import axios from "axios";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 import db from "../services/db.js";
 
 const router = express.Router();
@@ -126,6 +127,162 @@ const redirectWithOAuthError = (res, provider, code) => {
   const frontendBase = getFrontendRedirectBase();
   return res.redirect(`${frontendBase}/login?oauth_error=${provider}_${code}`);
 };
+
+router.post("/register", async (req, res) => {
+  try {
+    const { username, name, contact_add, address, email, password, role } =
+      req.body || {};
+
+    if (!username || !name || !email || !password) {
+      return res.status(400).json({
+        message: "Thiếu thông tin bắt buộc: username, name, email, password",
+      });
+    }
+
+    if (String(password).length < 6) {
+      return res.status(400).json({
+        message: "Mật khẩu phải có ít nhất 6 ký tự",
+      });
+    }
+
+    const normalizedUsername = String(username).trim();
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    const [existingRows] = await db.query(
+      "SELECT user_ID FROM users WHERE username = ? OR email = ? LIMIT 1",
+      [normalizedUsername, normalizedEmail],
+    );
+
+    if (Array.isArray(existingRows) && existingRows.length > 0) {
+      return res
+        .status(409)
+        .json({ message: "Username hoặc email đã tồn tại" });
+    }
+
+    const safeRole = ["customer", "seller", "admin"].includes(role)
+      ? role
+      : "customer";
+    const hashedPassword = await bcrypt.hash(String(password), 10);
+
+    const [insertResult] = await db.query(
+      "INSERT INTO users (username, name, contact_add, address, email, password, role) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [
+        normalizedUsername,
+        String(name).trim(),
+        contact_add ? String(contact_add).trim() : "",
+        address ? String(address).trim() : "",
+        normalizedEmail,
+        hashedPassword,
+        safeRole,
+      ],
+    );
+
+    const [rows] = await db.query(
+      "SELECT user_ID, username, name, email, role, contact_add, address FROM users WHERE user_ID = ? LIMIT 1",
+      [insertResult.insertId],
+    );
+
+    return res.status(201).json({
+      message: "Đăng ký thành công",
+      user: rows?.[0] || null,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.post("/login", async (req, res) => {
+  try {
+    const { identifier, password } = req.body || {};
+
+    if (!identifier || !password) {
+      return res
+        .status(400)
+        .json({ message: "Vui lòng nhập username/email và password" });
+    }
+
+    const normalizedIdentifier = String(identifier).trim();
+    const [rows] = await db.query(
+      "SELECT * FROM users WHERE username = ? OR email = ? LIMIT 1",
+      [normalizedIdentifier, normalizedIdentifier.toLowerCase()],
+    );
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(401).json({ message: "Sai tài khoản hoặc mật khẩu" });
+    }
+
+    const user = rows[0];
+
+    if (!user.password) {
+      return res.status(400).json({
+        message:
+          "Tài khoản này chưa có mật khẩu. Hãy đăng nhập bằng Google/Facebook",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(String(password), user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Sai tài khoản hoặc mật khẩu" });
+    }
+
+    const { accessToken, refreshToken } = createTokensForUser(user);
+
+    await db.query("UPDATE users SET refresh_token = ? WHERE user_ID = ?", [
+      refreshToken,
+      user.user_ID,
+    ]);
+
+    return res.json({
+      accessToken,
+      refreshToken,
+      user: {
+        user_ID: user.user_ID,
+        username: user.username || "",
+        name: user.name || user.username || "",
+        email: user.email || "",
+        role: user.role || "customer",
+        contact_add: user.contact_add || "",
+        address: user.address || "",
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.post("/refresh", async (req, res) => {
+  try {
+    const { token } = req.body || {};
+
+    if (!token) {
+      return res.status(400).json({ message: "Thiếu refresh token" });
+    }
+
+    const { jwtRefreshSecret } = getJwtSecrets();
+    const decoded = jwt.verify(String(token), jwtRefreshSecret);
+    const userId = decoded?.user_ID || decoded?.id;
+
+    if (!userId) {
+      return res.status(403).json({ message: "Refresh token không hợp lệ" });
+    }
+
+    const [rows] = await db.query(
+      "SELECT * FROM users WHERE user_ID = ? AND refresh_token = ? LIMIT 1",
+      [userId, token],
+    );
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(403).json({ message: "Refresh token không hợp lệ" });
+    }
+
+    const user = rows[0];
+    const { accessToken } = createTokensForUser(user);
+
+    return res.json({ accessToken });
+  } catch {
+    return res.status(403).json({ message: "Refresh token hết hạn hoặc sai" });
+  }
+});
 
 const exchangeGoogleCode = async (code, redirectUri, config) => {
   const clientId = process.env[config.clientIdEnv];

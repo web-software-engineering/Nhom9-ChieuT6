@@ -18,8 +18,9 @@ import CreateUserPage from "./pages/CreateUser.jsx";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
-import PrivateRoute from "./components/PrivateRoute";
+import PrivateRoute, { AdminRoute } from "./components/PrivateRoute";
 import AdminLayout from "./layouts/AdminLayout";
+import AdminLogin from "./pages/admin/AdminLogin";
 import Dashboard from "./pages/admin/Dashboard";
 import Products from "./pages/admin/Products";
 import Orders from "./pages/admin/Orders";
@@ -216,6 +217,7 @@ function App() {
         <Route path="/users" element={<StorefrontApp />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
         <Route
           path="/profile"
           element={
@@ -235,9 +237,9 @@ function App() {
         <Route
           path="/admin"
           element={
-            <PrivateRoute>
+            <AdminRoute>
               <AdminLayout />
-            </PrivateRoute>
+            </AdminRoute>
           }
         >
           <Route index element={<Navigate to="dashboard" replace />} />
