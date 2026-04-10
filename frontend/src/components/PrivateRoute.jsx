@@ -1,5 +1,9 @@
 import { Navigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
+
+/**
+ * @param {{ children: any; requiredRole?: string }} props
+ */
 export default function PrivateRoute({ children, requiredRole }) {
   const token = localStorage.getItem("accessToken");
 
