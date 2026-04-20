@@ -1,6 +1,7 @@
-import { ShoppingCart } from 'lucide-react';
-import { Product } from '../data/stationeryData';
-import { useCart } from '../contexts/CartContext';
+import { ShoppingCart } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useCart } from "../contexts/CartContext";
+import type { Product } from "../types/product";
 
 interface ProductCardProps {
   product: Product;
@@ -8,16 +9,21 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
+  const navigate = useNavigate();
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
     }).format(amount);
   };
 
   const handleAddToCart = () => {
     addToCart(product);
+  };
+
+  const openDetail = () => {
+    navigate(`/product/${product.productId}`);
   };
 
   return (
@@ -26,6 +32,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         <img
           src={product.image}
           alt={product.name}
+          onClick={openDetail}
           className="aspect-square w-full object-cover transition duration-500 group-hover:scale-105"
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/25 via-transparent to-transparent opacity-40" />
@@ -36,22 +43,35 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         <span
           className={`absolute right-4 top-4 rounded-full px-3 py-1 text-xs font-semibold ${
-            product.stock > 0 ? 'bg-teal-500 text-white' : 'bg-rose-500 text-white'
+            product.stock > 0
+              ? "bg-teal-500 text-white"
+              : "bg-rose-500 text-white"
           }`}
         >
-          {product.stock > 0 ? `Còn ${product.stock}` : 'Hết hàng'}
+          {product.stock > 0 ? `Còn ${product.stock}` : "Hết hàng"}
         </span>
       </div>
 
       <div className="flex flex-1 flex-col p-5">
-        <h3 className="line-clamp-2 h-14 text-lg font-bold text-slate-900">{product.name}</h3>
+        <h3
+          className="line-clamp-2 h-14 cursor-pointer text-lg font-bold text-slate-900"
+          onClick={openDetail}
+        >
+          {product.name}
+        </h3>
 
-        <p className="mt-2 line-clamp-2 h-10 text-sm text-slate-600">{product.description}</p>
+        <p className="mt-2 line-clamp-2 h-10 text-sm text-slate-600">
+          {product.description}
+        </p>
 
         <div className="mt-5 flex items-end justify-between gap-3">
           <div>
-            <p className="text-2xl font-bold text-slate-900">{formatCurrency(product.price)}</p>
-            <p className="mt-1 text-xs uppercase tracking-[0.12em] text-slate-500">Giá đã bao gồm VAT</p>
+            <p className="text-2xl font-bold text-slate-900">
+              {formatCurrency(product.price)}
+            </p>
+            <p className="mt-1 text-xs uppercase tracking-[0.12em] text-slate-500">
+              Giá đã bao gồm VAT
+            </p>
           </div>
 
           <div className="rounded-lg bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
@@ -68,7 +88,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           className="primary-btn flex w-full items-center justify-center gap-2 text-sm disabled:transform-none"
         >
           <ShoppingCart className="w-5 h-5" />
-          {product.stock === 0 ? 'Hết hàng' : 'Thêm vào giỏ'}
+          {product.stock === 0 ? "Hết hàng" : "Thêm vào giỏ"}
         </button>
       </div>
     </article>

@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
-import { Product, CartItem } from '../data/stationeryData';
+import { createContext, useContext, useState, ReactNode } from "react";
+import type { Product, CartItem } from "../types/product";
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -19,22 +19,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addToCart = (product: Product) => {
     setCartItems((prevItems) => {
-      const existingItem = prevItems.find((item) => item.product.id === product.id);
-      
+      const existingItem = prevItems.find(
+        (item) => item.product.id === product.id,
+      );
+
       if (existingItem) {
         return prevItems.map((item) =>
           item.product.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
-            : item
+            : item,
         );
       }
-      
+
       return [...prevItems, { product, quantity: 1 }];
     });
   };
 
   const removeFromCart = (productId: string) => {
-    setCartItems((prevItems) => prevItems.filter((item) => item.product.id !== productId));
+    setCartItems((prevItems) =>
+      prevItems.filter((item) => item.product.id !== productId),
+    );
   };
 
   const updateQuantity = (productId: string, quantity: number) => {
@@ -42,11 +46,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeFromCart(productId);
       return;
     }
-    
+
     setCartItems((prevItems) =>
       prevItems.map((item) =>
-        item.product.id === productId ? { ...item, quantity } : item
-      )
+        item.product.id === productId ? { ...item, quantity } : item,
+      ),
     );
   };
 
@@ -59,11 +63,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const getTotalPrice = () => {
-    return cartItems.reduce((total, item) => total + item.product.price * item.quantity, 0);
+    return cartItems.reduce(
+      (total, item) => total + item.product.price * item.quantity,
+      0,
+    );
   };
 
   const getTotalWeight = () => {
-    return cartItems.reduce((total, item) => total + item.product.weight * item.quantity, 0);
+    return cartItems.reduce(
+      (total, item) => total + item.product.weight * item.quantity,
+      0,
+    );
   };
 
   return (
@@ -87,7 +97,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 export function useCart() {
   const context = useContext(CartContext);
   if (context === undefined) {
-    throw new Error('useCart must be used within a CartProvider');
+    throw new Error("useCart must be used within a CartProvider");
   }
   return context;
 }

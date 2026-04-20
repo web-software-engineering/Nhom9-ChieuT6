@@ -1,31 +1,60 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, ChevronDown, Search, SlidersHorizontal } from 'lucide-react';
-import ProductCard from './ProductCard';
-import { products, categories } from '../data/stationeryData';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, ChevronDown, Search, SlidersHorizontal } from "lucide-react";
+import ProductCard from "./ProductCard";
+import { fetchCategories, fetchProducts } from "../services/productService";
+import type { Product } from "../types/product";
 
 export default function ProductList() {
-  const [selectedCategory, setSelectedCategory] = useState('Tất cả');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>(["Tất cả"]);
+  const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("Tất cả");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const categoryDropdownRef = useRef<HTMLDivElement | null>(null);
-  const hasActiveFilters = selectedCategory !== 'Tất cả' || searchQuery.length > 0;
+  const hasActiveFilters =
+    selectedCategory !== "Tất cả" || searchQuery.length > 0;
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        setHasError(false);
+        const [productData, categoryData] = await Promise.all([
+          fetchProducts(),
+          fetchCategories(),
+        ]);
+        setProducts(productData);
+        setCategories(categoryData);
+      } catch (error) {
+        console.error("Không tải được dữ liệu sản phẩm:", error);
+        setHasError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, []);
 
   const filteredProducts = useMemo(
     () =>
       products.filter((product) => {
-        const matchesCategory = selectedCategory === 'Tất cả' || product.category === selectedCategory;
+        const matchesCategory =
+          selectedCategory === "Tất cả" ||
+          product.category === selectedCategory;
         const matchesSearch =
           product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           product.description.toLowerCase().includes(searchQuery.toLowerCase());
 
         return matchesCategory && matchesSearch;
       }),
-    [selectedCategory, searchQuery]
+    [products, selectedCategory, searchQuery],
   );
 
   const resetFilters = () => {
-    setSelectedCategory('Tất cả');
-    setSearchQuery('');
+    setSelectedCategory("Tất cả");
+    setSearchQuery("");
   };
 
   useEffect(() => {
@@ -36,17 +65,17 @@ export default function ProductList() {
     };
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         setIsCategoryMenuOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handlePointerDown);
-    document.addEventListener('keydown', handleEscape);
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
 
     return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
-      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
     };
   }, []);
 
@@ -76,9 +105,13 @@ export default function ProductList() {
               aria-haspopup="listbox"
               aria-expanded={isCategoryMenuOpen}
               aria-label="Lọc theo danh mục"
-              onClick={() => setIsCategoryMenuOpen((currentValue) => !currentValue)}
+              onClick={() =>
+                setIsCategoryMenuOpen((currentValue) => !currentValue)
+              }
               className={`input-modern flex items-center gap-3 px-3 py-2 shadow-[0_18px_35px_-30px_rgba(15,23,42,0.75)] ${
-                isCategoryMenuOpen ? 'border-teal-500 ring-4 ring-teal-500/15' : ''
+                isCategoryMenuOpen
+                  ? "border-teal-500 ring-4 ring-teal-500/15"
+                  : ""
               }`}
             >
               <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white">
@@ -89,12 +122,18 @@ export default function ProductList() {
                 {selectedCategory}
               </span>
 
-              <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${isCategoryMenuOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 text-slate-400 transition ${isCategoryMenuOpen ? "rotate-180" : ""}`}
+              />
             </button>
 
             {isCategoryMenuOpen && (
               <div className="absolute right-0 top-[calc(100%+0.55rem)] z-30 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_24px_50px_-30px_rgba(15,23,42,0.35)]">
-                <div role="listbox" aria-label="Danh mục sản phẩm" className="max-h-72 space-y-1 overflow-y-auto">
+                <div
+                  role="listbox"
+                  aria-label="Danh mục sản phẩm"
+                  className="max-h-72 space-y-1 overflow-y-auto"
+                >
                   {categories.map((category) => {
                     const isSelected = selectedCategory === category;
 
@@ -107,12 +146,14 @@ export default function ProductList() {
                         onClick={() => handleSelectCategory(category)}
                         className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm font-medium transition ${
                           isSelected
-                            ? 'bg-teal-50 text-teal-700'
-                            : 'text-slate-700 hover:bg-slate-50'
+                            ? "bg-teal-50 text-teal-700"
+                            : "text-slate-700 hover:bg-slate-50"
                         }`}
                       >
                         <span className="truncate">{category}</span>
-                        {isSelected && <Check className="ml-3 h-4 w-4 shrink-0" />}
+                        {isSelected && (
+                          <Check className="ml-3 h-4 w-4 shrink-0" />
+                        )}
                       </button>
                     );
                   })}
@@ -125,13 +166,16 @@ export default function ProductList() {
 
       <div className="flex flex-wrap items-center justify-between gap-3 px-1">
         <p className="text-sm text-slate-600 sm:text-base">
-          Hiển thị <span className="font-bold text-slate-900">{filteredProducts.length}</span> sản phẩm
-          {selectedCategory !== 'Tất cả' && (
+          Hiển thị{" "}
+          <span className="font-bold text-slate-900">
+            {filteredProducts.length}
+          </span>{" "}
+          sản phẩm
+          {selectedCategory !== "Tất cả" && (
             <span className="ml-2 rounded-full bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-700">
               {selectedCategory}
             </span>
           )}
-
           {searchQuery && (
             <span className="ml-2 rounded-full bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-700">
               {searchQuery}
@@ -150,7 +194,22 @@ export default function ProductList() {
         )}
       </div>
 
-      {filteredProducts.length > 0 ? (
+      {loading ? (
+        <div className="soft-card py-12 text-center animate-fade-in">
+          <p className="text-lg font-semibold text-slate-700">
+            Đang tải sản phẩm...
+          </p>
+        </div>
+      ) : hasError ? (
+        <div className="soft-card py-12 text-center animate-fade-in">
+          <p className="text-lg font-semibold text-rose-600">
+            Không thể tải dữ liệu từ database
+          </p>
+          <p className="mt-2 text-sm text-slate-500">
+            Hãy kiểm tra backend/API rồi tải lại trang.
+          </p>
+        </div>
+      ) : filteredProducts.length > 0 ? (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
@@ -158,11 +217,19 @@ export default function ProductList() {
         </div>
       ) : (
         <div className="soft-card py-12 text-center animate-fade-in">
-          <p className="text-lg font-semibold text-slate-700">Không tìm thấy sản phẩm phù hợp</p>
-          <p className="mt-2 text-sm text-slate-500">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
+          <p className="text-lg font-semibold text-slate-700">
+            Không tìm thấy sản phẩm phù hợp
+          </p>
+          <p className="mt-2 text-sm text-slate-500">
+            Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.
+          </p>
 
           {hasActiveFilters && (
-            <button type="button" onClick={resetFilters} className="secondary-btn mt-5 text-sm">
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="secondary-btn mt-5 text-sm"
+            >
               Xem lại tất cả sản phẩm
             </button>
           )}

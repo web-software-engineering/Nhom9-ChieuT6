@@ -26,6 +26,7 @@ import Products from "./pages/admin/Products";
 import Orders from "./pages/admin/Orders";
 import Categories from "./pages/admin/Categories";
 import Stats from "./pages/admin/Stats";
+import ProductDetail from "./pages/ProductDetail";
 
 function Header() {
   const { getTotalItems } = useCart();
@@ -215,6 +216,14 @@ function App() {
         <Route path="/" element={<StorefrontApp />} />
         <Route path="/store" element={<StorefrontApp />} />
         <Route path="/users" element={<StorefrontApp />} />
+        <Route
+          path="/product/:id"
+          element={
+            <CartProvider>
+              <ProductDetail />
+            </CartProvider>
+          }
+        />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/admin/login" element={<AdminLogin />} />

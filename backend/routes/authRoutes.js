@@ -46,6 +46,19 @@ const providerIdColumn = {
   facebook: "facebook_id",
 };
 
+const isBcryptHash = (value) =>
+  typeof value === "string" && /^\$2[aby]\$/.test(value);
+
+const isPasswordMatch = async (password, storedPassword) => {
+  if (!storedPassword) return false;
+
+  if (isBcryptHash(storedPassword)) {
+    return bcrypt.compare(String(password), storedPassword);
+  }
+
+  return String(password) === String(storedPassword);
+};
+
 const buildCallbackUrl = (provider, config) => {
   return (
     process.env[config.callbackUrlEnv] ||
@@ -193,18 +206,20 @@ router.post("/register", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
-    const { identifier, password } = req.body || {};
+    const { identifier, username, email, password } = req.body || {};
+    const loginValue = identifier || username || email;
 
-    if (!identifier || !password) {
+    if (!loginValue || !password) {
       return res
         .status(400)
         .json({ message: "Vui lòng nhập username/email và password" });
     }
 
-    const normalizedIdentifier = String(identifier).trim();
+    const normalizedIdentifier = String(loginValue).trim();
+    const loweredIdentifier = normalizedIdentifier.toLowerCase();
     const [rows] = await db.query(
-      "SELECT * FROM users WHERE username = ? OR email = ? LIMIT 1",
-      [normalizedIdentifier, normalizedIdentifier.toLowerCase()],
+      "SELECT * FROM users WHERE LOWER(username) = ? OR LOWER(email) = ? LIMIT 1",
+      [loweredIdentifier, loweredIdentifier],
     );
 
     if (!Array.isArray(rows) || rows.length === 0) {
@@ -220,7 +235,7 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const isMatch = await bcrypt.compare(String(password), user.password);
+    const isMatch = await isPasswordMatch(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Sai tài khoản hoặc mật khẩu" });
     }

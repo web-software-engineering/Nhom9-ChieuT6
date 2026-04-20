@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 import * as ghnService from "./services/ghnService.js";
 import * as momoService from "./services/momoService.js";
 import * as vnpayService from "./services/vnpayService.js";
@@ -44,6 +46,7 @@ app.set("trust proxy", 1);
 
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static("public/uploads"));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
@@ -469,8 +472,6 @@ app.get("/api/vnpay/ipn", async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
-
 /* ================= MOMO PAYMENT API ================= */
 
 // Tạo mã thanh toán MoMo QR
@@ -710,10 +711,6 @@ app.get("/api/momo/status", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log("Server running on port", PORT);
-});
-
 app.get("/api/test-db", async (req, res) => {
   try {
     const [rows] = await db.query("SELECT 1 AS ok");
@@ -729,3 +726,16 @@ app.get("/api/test-db", async (req, res) => {
     });
   }
 });
+
+export const startServer = (port = process.env.PORT || 3000) => {
+  return app.listen(port, () => {
+    console.log("Server running on port", port);
+  });
+};
+
+const currentFile = fileURLToPath(import.meta.url);
+const entryFile = process.argv[1] ? path.resolve(process.argv[1]) : "";
+
+if (entryFile && path.resolve(currentFile) === entryFile) {
+  startServer();
+}
