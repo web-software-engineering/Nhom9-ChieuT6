@@ -9,8 +9,14 @@ interface DanhMuc {
   category_type: string;
 }
 
-// Sử dụng biến môi trường để deploy dễ dàng
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api/categories";
+// API base (FIX CHUẨN DEPLOY)
+const API_URL =
+  import.meta.env.VITE_API_URL || "https://nhom9-chieut6-backend.onrender.com";
+
+// Axios instance (FIX QUAN TRỌNG)
+const axiosInstance = axios.create({
+  baseURL: `${API_URL}/api`,
+});
 
 // Modal component
 interface CategoryModalProps {
@@ -22,41 +28,58 @@ interface CategoryModalProps {
   onSubmit: (e: React.FormEvent) => void;
 }
 
-const CategoryModal: React.FC<CategoryModalProps> = ({ show, dangSua, form, onChange, onClose, onSubmit }) => {
+const CategoryModal: React.FC<CategoryModalProps> = ({
+  show,
+  dangSua,
+  form,
+  onChange,
+  onClose,
+  onSubmit,
+}) => {
   if (!show) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded shadow-lg w-11/12 sm:w-1/3 p-6">
-        <h2 className="text-xl font-bold mb-4 text-gray-700">{dangSua ? "Sửa danh mục" : "Thêm danh mục"}</h2>
+        <h2 className="text-xl font-bold mb-4 text-gray-700">
+          {dangSua ? "Sửa danh mục" : "Thêm danh mục"}
+        </h2>
+
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <input
             type="text"
             placeholder="Tên danh mục"
-            className="border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="border px-3 py-2 rounded"
             value={form.category_name}
-            onChange={(e) => onChange({ ...form, category_name: e.target.value })}
+            onChange={(e) =>
+              onChange({ ...form, category_name: e.target.value })
+            }
             required
           />
+
           <input
             type="text"
             placeholder="Loại danh mục"
-            className="border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="border px-3 py-2 rounded"
             value={form.category_type}
-            onChange={(e) => onChange({ ...form, category_type: e.target.value })}
+            onChange={(e) =>
+              onChange({ ...form, category_type: e.target.value })
+            }
             required
           />
+
           <div className="flex justify-end gap-2 mt-2">
             <button
               type="button"
-              className="px-4 py-2 rounded border hover:bg-gray-100 transition-all"
               onClick={onClose}
+              className="px-4 py-2 border rounded"
             >
               Hủy
             </button>
+
             <button
               type="submit"
-              className="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition-all"
+              className="px-4 py-2 bg-blue-500 text-white rounded"
             >
               {dangSua ? "Cập nhật" : "Thêm"}
             </button>
@@ -72,54 +95,64 @@ const QuanLyDanhMuc: React.FC = () => {
   const [timKiem, setTimKiem] = useState("");
   const [hienModal, setHienModal] = useState(false);
   const [dangSua, setDangSua] = useState<DanhMuc | null>(null);
-  const [form, setForm] = useState({ category_name: "", category_type: "" });
+  const [form, setForm] = useState({
+    category_name: "",
+    category_type: "",
+  });
   const [chonNhieu, setChonNhieu] = useState<number[]>([]);
 
-const axiosInstance = axios.create({
-  baseURL: "https://nhom9-chieut6-backend.onrender.com/api",
-});
+  // GET danh mục
   const layDanhMuc = async () => {
-  try {
-    const res = await axiosInstance.get("/categories");
+    try {
+      const res = await axiosInstance.get("/categories");
+      setDanhMuc(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error("Lỗi khi lấy danh mục:", err);
+      setDanhMuc([]);
+    }
+  };
 
-    console.log("API:", res.data);
-
-    setDanhMuc(res.data);
-  } catch (err) {
-    console.error("Lỗi khi lấy danh mục:", err);
-    setDanhMuc([]);
-  }
-};
   useEffect(() => {
     layDanhMuc();
   }, []);
 
+  // Xóa 1
   const xoaDanhMuc = async (id: number) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa danh mục này?")) return;
+    if (!window.confirm("Bạn có chắc chắn muốn xóa?")) return;
     try {
-      await axiosInstance.delete(`/${id}`);
+      await axiosInstance.delete(`/categories/${id}`);
       layDanhMuc();
     } catch (err) {
-      console.error("Lỗi khi xóa danh mục:", err);
+      console.error("Lỗi khi xóa:", err);
     }
   };
 
+  // Xóa nhiều
   const xoaNhieuDanhMuc = async () => {
-    if (chonNhieu.length === 0) return alert("Chưa chọn danh mục nào!");
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa ${chonNhieu.length} danh mục đã chọn?`)) return;
+    if (!chonNhieu.length) return alert("Chưa chọn danh mục!");
+    if (!window.confirm(`Xóa ${chonNhieu.length} danh mục?`)) return;
+
     try {
-      await Promise.all(chonNhieu.map((id) => axiosInstance.delete(`/${id}`)));
+      await Promise.all(
+        chonNhieu.map((id) =>
+          axiosInstance.delete(`/categories/${id}`)
+        )
+      );
       setChonNhieu([]);
       layDanhMuc();
     } catch (err) {
-      console.error("Lỗi khi xóa danh mục:", err);
+      console.error("Lỗi khi xóa nhiều:", err);
     }
   };
 
+  // mở modal
   const moModal = (dm?: DanhMuc) => {
     if (dm) {
       setDangSua(dm);
-      setForm({ category_name: dm.category_name, category_type: dm.category_type });
+      setForm({
+        category_name: dm.category_name,
+        category_type: dm.category_type,
+      });
     } else {
       setDangSua(null);
       setForm({ category_name: "", category_type: "" });
@@ -127,28 +160,40 @@ const axiosInstance = axios.create({
     setHienModal(true);
   };
 
+  // submit form
   const guiForm = async (e: React.FormEvent) => {
-  e.preventDefault();
-  try {
-    if (dangSua) {
-      await axiosInstance.put(`/categories/${dangSua.category_ID}`, form);
-    } else {
-      await axiosInstance.post("/categories", form); 
+    e.preventDefault();
+    try {
+      if (dangSua) {
+        await axiosInstance.put(
+          `/categories/${dangSua.category_ID}`,
+          form
+        );
+      } else {
+        await axiosInstance.post("/categories", form);
+      }
+
+      setHienModal(false);
+      layDanhMuc();
+    } catch (err) {
+      console.error("Lỗi submit:", err);
     }
+  };
 
-    setHienModal(false);
-    layDanhMuc();
-  } catch (err) {
-    console.error("Lỗi khi gửi form:", err);
-  }
-};
+  // filter an toàn
+  const danhMucLoc = (Array.isArray(danhMuc) ? danhMuc : []).filter(
+    (dm) =>
+      (dm.category_name || "")
+        .toLowerCase()
+        .includes(timKiem.toLowerCase()) ||
+      (dm.category_type || "")
+        .toLowerCase()
+        .includes(timKiem.toLowerCase())
+  );
 
- const danhMucLoc = (Array.isArray(danhMuc) ? danhMuc : []).filter(
-  (dm) =>
-    (dm.category_name || "").toLowerCase().includes(timKiem.toLowerCase()) ||
-    (dm.category_type || "").toLowerCase().includes(timKiem.toLowerCase())
-);
-  const allChecked = danhMucLoc.length > 0 && chonNhieu.length === danhMucLoc.length;
+  const allChecked =
+    danhMucLoc.length > 0 &&
+    chonNhieu.length === danhMucLoc.length;
 
   const handleCheck = (id: number, checked: boolean) => {
     if (checked) setChonNhieu((prev) => [...prev, id]);
@@ -156,101 +201,125 @@ const axiosInstance = axios.create({
   };
 
   const handleCheckAll = (checked: boolean) => {
-    if (checked) setChonNhieu(danhMucLoc.map((dm) => dm.category_ID));
+    if (checked)
+      setChonNhieu(danhMucLoc.map((dm) => dm.category_ID));
     else setChonNhieu([]);
   };
 
-  return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">Quản Lý Danh Mục</h1>
+ return (
+  <div className="p-6 max-w-6xl mx-auto">
+    <h1 className="text-3xl font-bold mb-6 text-gray-800">
+      Quản Lý Danh Mục
+    </h1>
 
-      <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center mb-4 gap-2">
-        <input
-          type="text"
-          placeholder="🔍 Tìm kiếm danh mục..."
-          className="border border-gray-300 rounded px-3 py-2 w-full sm:w-1/3 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          value={timKiem}
-          onChange={(e) => setTimKiem(e.target.value)}
-        />
-        <div className="flex gap-2">
-          <button
-            onClick={() => moModal()}
-            className="bg-green-500 text-white px-5 py-2 rounded hover:bg-green-600 transition-all"
-          >
-            + Thêm danh mục
-          </button>
-          <button
-            onClick={xoaNhieuDanhMuc}
-            className="bg-red-500 text-white px-5 py-2 rounded hover:bg-red-600 transition-all"
-          >
-            Xóa đã chọn
-          </button>
-        </div>
+    {/* Search + Actions */}
+    <div className="flex flex-col sm:flex-row sm:justify-between gap-3 mb-4">
+      <input
+        type="text"
+        placeholder="🔍 Tìm kiếm danh mục..."
+        className="border px-4 py-2 rounded w-full sm:w-1/3 focus:ring-2 focus:ring-blue-400 outline-none"
+        value={timKiem}
+        onChange={(e) => setTimKiem(e.target.value)}
+      />
+
+      <div className="flex gap-2">
+        <button
+          onClick={() => moModal()}
+          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded transition"
+        >
+          + Thêm danh mục
+        </button>
+
+        <button
+          onClick={xoaNhieuDanhMuc}
+          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition"
+        >
+          Xóa đã chọn
+        </button>
       </div>
+    </div>
 
-      <div className="overflow-x-auto border rounded shadow">
-        <table className="min-w-full bg-white divide-y divide-gray-200">
-          <thead className="bg-gray-100">
-            <tr className="text-gray-700 text-center">
-              <th className="px-4 py-2 border">
-                <input type="checkbox" checked={allChecked} onChange={(e) => handleCheckAll(e.target.checked)} />
-              </th>
-              <th className="px-4 py-2 border">ID</th>
-              <th className="px-4 py-2 border">Tên danh mục</th>
-              <th className="px-4 py-2 border">Loại danh mục</th>
-              <th className="px-4 py-2 border">Hành động</th>
+    {/* Table */}
+    <div className="overflow-x-auto border rounded shadow bg-white">
+      <table className="min-w-full text-center">
+        <thead className="bg-gray-100 text-gray-700">
+          <tr>
+            <th className="p-3">
+              <input
+                type="checkbox"
+                checked={allChecked}
+                onChange={(e) => handleCheckAll(e.target.checked)}
+              />
+            </th>
+            <th className="p-3">ID</th>
+            <th className="p-3">Tên danh mục</th>
+            <th className="p-3">Loại danh mục</th>
+            <th className="p-3">Hành động</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {danhMucLoc.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="py-6 text-gray-500">
+                Không tìm thấy danh mục nào
+              </td>
             </tr>
-          </thead>
-          <tbody className="text-center">
-            {danhMucLoc.length === 0 && (
-              <tr>
-                <td colSpan={5} className="py-4 text-gray-500">
-                  Không tìm thấy danh mục nào
-                </td>
-              </tr>
-            )}
-            {danhMucLoc.map((dm) => (
-              <tr key={dm.category_ID} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-2 border">
+          ) : (
+            danhMucLoc.map((dm) => (
+              <tr
+                key={dm.category_ID}
+                className="border-t hover:bg-gray-50 transition"
+              >
+                <td className="p-3">
                   <input
                     type="checkbox"
                     checked={chonNhieu.includes(dm.category_ID)}
-                    onChange={(e) => handleCheck(dm.category_ID, e.target.checked)}
+                    onChange={(e) =>
+                      handleCheck(dm.category_ID, e.target.checked)
+                    }
                   />
                 </td>
-                <td className="px-4 py-2 border">{dm.category_ID}</td>
-                <td className="px-4 py-2 border">{dm.category_name}</td>
-                <td className="px-4 py-2 border">{dm.category_type}</td>
-                <td className="px-4 py-2 border flex justify-center gap-2">
+
+                <td className="p-3">{dm.category_ID}</td>
+                <td className="p-3 font-medium text-gray-800">
+                  {dm.category_name}
+                </td>
+                <td className="p-3">{dm.category_type}</td>
+
+                <td className="p-3 flex justify-center gap-2">
                   <button
-                    className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-all"
                     onClick={() => moModal(dm)}
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition"
                   >
                     Sửa
                   </button>
+
                   <button
-                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition-all"
                     onClick={() => xoaDanhMuc(dm.category_ID)}
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded transition"
                   >
                     Xóa
                   </button>
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <CategoryModal
-        show={hienModal}
-        dangSua={dangSua}
-        form={form}
-        onChange={setForm}
-        onClose={() => setHienModal(false)}
-        onSubmit={guiForm}
-      />
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
-  );
+
+    {/* Modal */}
+    <CategoryModal
+      show={hienModal}
+      dangSua={dangSua}
+      form={form}
+      onChange={setForm}
+      onClose={() => setHienModal(false)}
+      onSubmit={guiForm}
+    />
+  </div>
+);
 };
 
 export default QuanLyDanhMuc;
