@@ -75,17 +75,21 @@ const QuanLyDanhMuc: React.FC = () => {
   const [form, setForm] = useState({ category_name: "", category_type: "" });
   const [chonNhieu, setChonNhieu] = useState<number[]>([]);
 
-  const axiosInstance = axios.create({ baseURL: API_URL });
-
+const axiosInstance = axios.create({
+  baseURL: "https://nhom9-chieut6-backend.onrender.com/api",
+});
   const layDanhMuc = async () => {
-    try {
-      const res = await axiosInstance.get<DanhMuc[]>("");
-      setDanhMuc(res.data);
-    } catch (err) {
-      console.error("Lỗi khi lấy danh mục:", err);
-    }
-  };
+  try {
+    const res = await axiosInstance.get("/categories");
 
+    console.log("API:", res.data);
+
+    setDanhMuc(res.data);
+  } catch (err) {
+    console.error("Lỗi khi lấy danh mục:", err);
+    setDanhMuc([]);
+  }
+};
   useEffect(() => {
     layDanhMuc();
   }, []);
@@ -124,24 +128,26 @@ const QuanLyDanhMuc: React.FC = () => {
   };
 
   const guiForm = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (dangSua) await axiosInstance.put(`/${dangSua.category_ID}`, form);
-      else await axiosInstance.post("", form);
-
-      setHienModal(false);
-      layDanhMuc();
-    } catch (err) {
-      console.error("Lỗi khi gửi form:", err);
+  e.preventDefault();
+  try {
+    if (dangSua) {
+      await axiosInstance.put(`/categories/${dangSua.category_ID}`, form);
+    } else {
+      await axiosInstance.post("/categories", form); 
     }
-  };
 
-  const danhMucLoc = danhMuc.filter(
-    (dm) =>
-      dm.category_name.toLowerCase().includes(timKiem.toLowerCase()) ||
-      dm.category_type.toLowerCase().includes(timKiem.toLowerCase())
-  );
+    setHienModal(false);
+    layDanhMuc();
+  } catch (err) {
+    console.error("Lỗi khi gửi form:", err);
+  }
+};
 
+ const danhMucLoc = (Array.isArray(danhMuc) ? danhMuc : []).filter(
+  (dm) =>
+    (dm.category_name || "").toLowerCase().includes(timKiem.toLowerCase()) ||
+    (dm.category_type || "").toLowerCase().includes(timKiem.toLowerCase())
+);
   const allChecked = danhMucLoc.length > 0 && chonNhieu.length === danhMucLoc.length;
 
   const handleCheck = (id: number, checked: boolean) => {
