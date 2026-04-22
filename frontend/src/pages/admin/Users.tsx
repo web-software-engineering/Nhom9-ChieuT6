@@ -37,7 +37,6 @@ export default function Users() {
   const fetchUsers = async () => {
     try {
       const res = await fetch(API);
-
       if (!res.ok) throw new Error("API lỗi");
 
       const data = await res.json();
@@ -99,11 +98,13 @@ export default function Users() {
     if (!confirm("Xóa user này?")) return;
 
     try {
-      const res = await fetch(`${API}/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API}/${id}`, {
+        method: "DELETE",
+      });
 
       if (!res.ok) throw new Error();
 
-      setUsers(users.filter((u) => u.id !== id));
+      setUsers((prev) => prev.filter((u) => u.id !== id));
     } catch {
       alert("❌ Xóa thất bại!");
     }
@@ -150,7 +151,6 @@ export default function Users() {
     }
   };
 
-  // reset input khi mở modal
   useEffect(() => {
     if (showPassModal) {
       setOldPass("");
@@ -263,6 +263,7 @@ export default function Users() {
                           >
                             <Check size={16} />
                           </button>
+
                           <button
                             onClick={cancelEdit}
                             className="bg-gray-400 text-white px-2 py-1 rounded"
@@ -284,6 +285,13 @@ export default function Users() {
                             className="bg-yellow-500 text-white px-2 py-1 rounded"
                           >
                             Đổi MK
+                          </button>
+
+                          <button
+                            onClick={() => deleteUser(u.id)}
+                            className="bg-red-500 text-white px-2 py-1 rounded"
+                          >
+                            Xóa
                           </button>
                         </>
                       )}
@@ -325,6 +333,7 @@ export default function Users() {
               >
                 Hủy
               </button>
+
               <button
                 onClick={changePassword}
                 className="bg-green-500 text-white px-4 py-2 rounded"
