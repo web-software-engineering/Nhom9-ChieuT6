@@ -26,6 +26,7 @@ import Products from "./pages/admin/Products";
 import Orders from "./pages/admin/Orders";
 import Categories from "./pages/admin/Categories";
 import Stats from "./pages/admin/Stats";
+import UsersAdmin from  "./pages/admin/Users";
 import ProductDetail from "./pages/ProductDetail";
 
 function Header() {
@@ -257,6 +258,7 @@ function App() {
           <Route path="orders" element={<Orders />} />
           <Route path="categories" element={<Categories />} />
           <Route path="stats" element={<Stats />} />
+          <Route path="users" element={<UsersAdmin />} />
         </Route>
         <Route path="*" element={<StorefrontApp />} />
       </Routes>

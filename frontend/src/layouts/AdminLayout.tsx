@@ -3,12 +3,13 @@ import { useState } from "react";
 import UserMenu from "../components/UserMenu";
 import "./admin.css";
 
-const menuItems = [
-  { name: "Dashboard", path: "/admin/dashboard" },
-  { name: "Danh mục", path: "/admin/categories" },
-  { name: "Sản phẩm", path: "/admin/products" },
-  { name: "Đơn hàng", path: "/admin/orders" },
-  { name: "Thống kê", path: "/admin/stats" },
+const adminMenuItems = [
+  { name: "Dashboard", path: "/admin/dashboard", icon: "📊" },
+  { name: "Danh mục", path: "/admin/categories", icon: "📁" },
+  { name: "Sản phẩm", path: "/admin/products", icon: "📦" },
+  { name: "Đơn hàng", path: "/admin/orders", icon: "🧾" },
+  { name: "Thống kê", path: "/admin/stats", icon: "📈" },
+  { name: "Tài khoản", path: "/admin/users", icon: "👤" }, // 👈 thêm trang user
 ];
 
 export default function AdminLayout() {
@@ -16,32 +17,42 @@ export default function AdminLayout() {
 
   return (
     <div className="admin-container">
+      {/* SIDEBAR */}
       <aside className={`admin-sidebar ${collapsed ? "collapsed" : ""}`}>
         <div className="admin-logo">
-          <h2 className="logo-text">Office Admin</h2>
+          <h2 className="logo-text">
+            {collapsed ? "OA" : "Office Admin"}
+          </h2>
+
           <button
             type="button"
             className="toggle-btn"
-            onClick={() => setCollapsed((value) => !value)}
+            onClick={() => setCollapsed((v) => !v)}
           >
             {collapsed ? "➡" : "⬅"}
           </button>
         </div>
 
         <nav className="admin-menu">
-          {menuItems.map((item) => (
+          {adminMenuItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
-              className="admin-link"
-              data-title={item.name}
+              className={({ isActive }) =>
+                "admin-link " + (isActive ? "active" : "")
+              }
             >
-              <span className="link-text">{item.name}</span>
+              <span className="icon">{item.icon}</span>
+
+              {!collapsed && (
+                <span className="link-text">{item.name}</span>
+              )}
             </NavLink>
           ))}
         </nav>
       </aside>
 
+      {/* MAIN */}
       <div className="admin-main">
         <header className="admin-header">
           <h1>Trang quản trị</h1>
