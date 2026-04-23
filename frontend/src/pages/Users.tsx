@@ -3,10 +3,8 @@ import {
   AlertCircle,
   Loader2,
   Pencil,
-  Plus,
   Trash2,
   Users as UsersIcon,
-  X,
   Check,
 } from "lucide-react";
 
@@ -114,7 +112,7 @@ export default function Users() {
     });
 
     setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, name: editName } : u))
+      prev.map((u) => (u.id === id ? { ...u, name: editName } : u)),
     );
 
     setEditingId(null);
@@ -186,8 +184,8 @@ export default function Users() {
                       u.role === "admin"
                         ? "text-red-500"
                         : u.role === "seller"
-                        ? "text-blue-500"
-                        : "text-green-500"
+                          ? "text-blue-500"
+                          : "text-green-500"
                     }
                   >
                     {u.role}
