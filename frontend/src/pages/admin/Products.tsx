@@ -17,6 +17,7 @@ interface Product {
   price: number;
   number: number;
   import_date?: string;
+    description?: string; 
 }
 
 // API
@@ -33,15 +34,36 @@ interface ProductFormProps {
 }
 
 const ProductFormModal: React.FC<ProductFormProps> = ({ categories, product, onClose, onSave }) => {
-  const [form, setForm] = useState({
-    category_ID: product?.category_ID || 0,
-    product_name: product?.product_name || "",
-    price: product?.price.toString() || "",
-    number: product?.number.toString() || "",
-    product_image: null as File | null,
-    import_date: product?.import_date ? product.import_date.split("T")[0] : "",
-  });
-
+const [form, setForm] = useState({
+  category_ID: product?.category_ID || 0,
+  product_name: product?.product_name || "",
+  price: product?.price.toString() || "",
+  number: product?.number.toString() || "",
+  description: product?.description || "", // 
+  product_image: null as File | null,
+  
+});
+useEffect(() => {
+  if (product) {
+    setForm({
+      category_ID: product.category_ID || 0,
+      product_name: product.product_name || "",
+      price: product.price?.toString() || "",
+      number: product.number?.toString() || "",
+      description: product.description || "",
+      product_image: null,
+    });
+  } else {
+    setForm({
+      category_ID: 0,
+      product_name: "",
+      price: "",
+      number: "",
+      description: "",
+      product_image: null,
+    });
+  }
+}, [product]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const price = Number(form.price);
@@ -53,13 +75,15 @@ const ProductFormModal: React.FC<ProductFormProps> = ({ categories, product, onC
     if (isNaN(number) || number < 0) return alert("Số lượng không hợp lệ!");
 
     const formData = new FormData();
-    formData.append("category_ID", form.category_ID.toString());
-    formData.append("product_name", form.product_name);
-    formData.append("price", price.toString());
-    formData.append("number", number.toString());
-    if (form.product_image) formData.append("product_image", form.product_image);
-    formData.append("import_date", form.import_date || new Date().toISOString().split("T")[0]);
+formData.append("category_ID", form.category_ID.toString());
+formData.append("product_name", form.product_name);
+formData.append("description", form.description); // ✅
+formData.append("price", price.toString());
+formData.append("number", number.toString());
 
+if (form.product_image) {
+  formData.append("product_image", form.product_image);
+}
     try {
       if (product) {
         await axios.put(`${API_PRODUCTS}/${product.product_ID}`, formData);
@@ -67,10 +91,11 @@ const ProductFormModal: React.FC<ProductFormProps> = ({ categories, product, onC
         await axios.post(API_PRODUCTS, formData);
       }
       onSave();
-    } catch (err) {
-      console.error(err);
-      alert("Lưu sản phẩm thất bại!");
-    }
+     } catch (err: any) {
+  console.log("FULL ERROR:", err);
+  console.log("BACKEND:", err?.response?.data);
+  alert(err?.response?.data?.error || "Lưu sản phẩm thất bại!");
+}
   };
 
   return (
@@ -88,9 +113,15 @@ const ProductFormModal: React.FC<ProductFormProps> = ({ categories, product, onC
           </select>
 
           <input type="text" placeholder="Tên sản phẩm" value={form.product_name} onChange={(e) => setForm({ ...form, product_name: e.target.value })} className="border px-3 py-2 rounded" />
+         <textarea
+              placeholder="Mô tả sản phẩm"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className="border px-3 py-2 rounded"
+            />
           <input type="number" min={0} placeholder="Giá sản phẩm" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="border px-3 py-2 rounded" />
           <input type="number" min={0} placeholder="Số lượng" value={form.number} onChange={(e) => setForm({ ...form, number: e.target.value })} className="border px-3 py-2 rounded" />
-          <input type="date" value={form.import_date} onChange={(e) => setForm({ ...form, import_date: e.target.value })} className="border px-3 py-2 rounded" />
+         
           <input type="file" onChange={(e) => setForm({ ...form, product_image: e.target.files ? e.target.files[0] : null })} className="border px-3 py-2 rounded" />
 
           <div className="flex justify-end gap-2">
@@ -220,7 +251,7 @@ const ProductManagement: React.FC = () => {
                   : p.number <= 3 ? <span className="text-orange-600 font-bold">Sắp hết</span>
                   : <span className="text-green-600">Còn hàng</span>}
                 </td>
-                <td className="border">{p.import_date ? new Date(p.import_date).toLocaleDateString() : "-"}</td>
+          
                 <td className="border">{p.product_image ? <img src={p.product_image.startsWith("http") ? p.product_image : `${API_URL}/${p.product_image}`} className="w-16 h-16 object-cover mx-auto" /> : <span>Chưa có</span>}</td>
                 <td className="border flex justify-center gap-2 py-2">
                   <button className="bg-blue-500 text-white px-3 py-1 rounded" onClick={() => { setEditingProduct(p); setShowModal(true); }}>Sửa</button>

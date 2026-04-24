@@ -6,16 +6,30 @@ import path from "path";
 export const getAllProducts = async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT p.*, c.category_name, u.name AS seller_name
+      SELECT 
+        p.product_ID,
+        p.category_ID,
+        p.seller_ID,
+        p.product_name,
+        p.description,
+        p.price,
+        p.number,
+        p.product_image,
+        c.category_name,
+        u.name AS seller_name
       FROM products p
       LEFT JOIN categories c ON p.category_ID = c.category_ID
       LEFT JOIN users u ON p.seller_ID = u.user_ID
-      ORDER BY p.product_ID
+      ORDER BY p.product_ID DESC
     `);
+
     res.json(rows);
   } catch (err) {
     console.error("GET ERROR:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
 
@@ -26,36 +40,51 @@ export const getProductById = async (req, res) => {
   try {
     const [rows] = await db.query(
       `
-      SELECT p.*, c.category_name, u.name AS seller_name
+      SELECT 
+        p.product_ID,
+        p.category_ID,
+        p.seller_ID,
+        p.product_name,
+        p.description,
+        p.price,
+        p.number,
+        p.product_image,
+        c.category_name,
+        u.name AS seller_name
       FROM products p
       LEFT JOIN categories c ON p.category_ID = c.category_ID
       LEFT JOIN users u ON p.seller_ID = u.user_ID
       WHERE p.product_ID = ?
       LIMIT 1
     `,
-      [id],
+      [id]
     );
 
     if (!rows.length) {
-      return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+      return res.status(404).json({
+        message: "Không tìm thấy sản phẩm",
+      });
     }
 
     res.json(rows[0]);
   } catch (err) {
     console.error("GET BY ID ERROR:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
 
 // ================= ADD =================
 export const addProduct = async (req, res) => {
   try {
-    const { category_ID, product_name, price, number } = req.body;
+    const { category_ID, product_name, price, number, description } = req.body;
 
     if (!category_ID || !product_name?.trim()) {
-      return res
-        .status(400)
-        .json({ message: "Thiếu category hoặc tên sản phẩm" });
+      return res.status(400).json({
+        message: "Thiếu category hoặc tên sản phẩm",
+      });
     }
 
     const priceNum = Number(price ?? 0);
@@ -68,17 +97,19 @@ export const addProduct = async (req, res) => {
 
     const [result] = await db.query(
       `
-  INSERT INTO products (category_ID, seller_ID, product_name, price, number, product_image, import_date)
-  VALUES (?, ?, ?, ?, ?, ?, CURDATE())
-`,
+      INSERT INTO products 
+      (category_ID, seller_ID, product_name, description, price, number, product_image)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      `,
       [
         category_ID,
         seller_ID,
         product_name,
+        description || "",
         priceNum,
         numberNum,
         product_image,
-      ],
+      ]
     );
 
     res.json({
@@ -87,14 +118,17 @@ export const addProduct = async (req, res) => {
     });
   } catch (err) {
     console.error("ADD ERROR:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
 
 // ================= UPDATE =================
 export const updateProduct = async (req, res) => {
   const { id } = req.params;
-  const { category_ID, product_name, price, number, import_date } = req.body;
+  const { category_ID, product_name, price, number, description } = req.body;
 
   try {
     if (!category_ID || !product_name?.trim()) {
@@ -108,51 +142,69 @@ export const updateProduct = async (req, res) => {
       ? `uploads/products/${req.file.filename}`
       : null;
 
-    // Lấy thông tin hiện tại
+    // lấy dữ liệu cũ
     const [existing] = await db.query(
-      "SELECT product_image FROM products WHERE product_ID = ?",
-      [id],
+      "SELECT product_image, description FROM products WHERE product_ID = ?",
+      [id]
     );
-    if (!existing.length)
+
+    if (!existing.length) {
       return res.status(404).json({ message: "Sản phẩm không tồn tại" });
+    }
 
     if (!product_image) product_image = existing[0].product_image;
 
-    // Cập nhật sản phẩm
+    const finalDescription =
+      description !== undefined ? description : existing[0].description;
+
     await db.query(
       `
       UPDATE products
-      SET category_ID = ?, product_name = ?, price = ?, number = ?, product_image = ?, import_date = ?
+      SET 
+        category_ID = ?, 
+        product_name = ?, 
+        description = ?, 
+        price = ?, 
+        number = ?, 
+        product_image = ?
       WHERE product_ID = ?
     `,
       [
         category_ID,
         product_name,
+        finalDescription || "",
         priceNum,
         numberNum,
         product_image,
-        import_date || new Date().toISOString().split("T")[0],
         id,
-      ],
+      ]
     );
 
     res.json({ message: "Cập nhật sản phẩm thành công" });
   } catch (err) {
     console.error("UPDATE ERROR:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
 
 // ================= DELETE =================
 export const deleteProduct = async (req, res) => {
   const { id } = req.params;
+
   try {
     const [existing] = await db.query(
       "SELECT product_image FROM products WHERE product_ID = ?",
-      [id],
+      [id]
     );
-    if (!existing.length)
-      return res.status(404).json({ message: "Sản phẩm không tồn tại" });
+
+    if (!existing.length) {
+      return res.status(404).json({
+        message: "Sản phẩm không tồn tại",
+      });
+    }
 
     if (existing[0].product_image) {
       const filePath = path.join("public", existing[0].product_image);
@@ -160,9 +212,13 @@ export const deleteProduct = async (req, res) => {
     }
 
     await db.query("DELETE FROM products WHERE product_ID = ?", [id]);
+
     res.json({ message: "Xóa sản phẩm thành công" });
   } catch (err) {
     console.error("DELETE ERROR:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
